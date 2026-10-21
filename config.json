@@ -1,0 +1,8 @@
+{
+  "bbox": {"lamin": 45.7, "lamax": 48.0, "lomin": 5.8, "lomax": 10.6},
+  "airport_idents": ["LSZH", "LSGG", "LFSB"],
+  "near_km": 30,
+  "far_km": 60,
+  "max_age_seconds": 60,
+  "interval_seconds": 300
+}

@@ -1,0 +1,26 @@
+# Completion checklist
+
+- [ ] Lecturer formally approves topic; concept requirement handled separately.
+- [ ] Own collection from OpenSky documented; old-group data not primary evidence.
+- [ ] Both source URLs, retrieval times, checksums, dates and units documented.
+- [ ] Collection gaps and duplicate aircraft observations explained.
+- [ ] Cleaning exclusions and join gained/lost/unmatched counts exported.
+- [ ] SQLite delivered; Python SQL shown; optional PostgreSQL demonstrated if pursued.
+- [ ] EDA contains substantive tables and charts, geographical comparison and sample sizes.
+- [ ] Research question includes actual group/region/time or feature-set comparisons.
+- [ ] Target and target-derived columns excluded from model inputs.
+- [ ] Preprocessing fit only on training data; final test not used for tuning.
+- [ ] Primary later-day and secondary aircraft splits explained without conflating them.
+- [ ] MAE, RMSE, R-squared and baseline values generated from real held-out data.
+- [ ] Error by group and common altitude support interpreted.
+- [ ] Statistical p-values generated, assumptions explained, dependence addressed.
+- [ ] K-means features scaled and clusters interpreted cautiously.
+- [ ] Figures have units, captions, readable labels and source attribution.
+- [ ] AI log includes actual benefits, failed attempts and human corrections.
+- [ ] All notebooks run in order from a fresh kernel on frozen collected data.
+- [ ] Tested environment pinned; reproduction instructions checked by another student.
+- [ ] Public GitHub code sanitized; URL included on slides if bonus pursued.
+- [ ] Data redistribution checked against source terms and Moodle requirements.
+- [ ] Slide PDF uses final verified outputs; all three student names included.
+- [ ] Video is approximately 15 minutes, all members speak, AI reflection included.
+- [ ] Moodle package contains data, database, notebooks, scripts, README, environment and requested presentation files.
