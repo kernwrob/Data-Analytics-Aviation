@@ -2,6 +2,8 @@
 
 The technical pilot passed and was stopped on 1 October at 15:56:57 Europe/Zurich. The original pilot task is disabled and preserved. Main collection has **not** been started: choose the start date, duration and owner first.
 
+**Change on 22 October 2026 (ADS-B category):** snapshot requests now send `extended=1`, so OpenSky returns 18 instead of 17 fields per state vector; field 18 is the ADS-B emitter `category`. Each successful manifest entry logs `category_present`, the share of vectors with 18 fields. Raw responses are still saved unchanged and nothing is filtered during collection; `prepare.py` reads old 17-field pilot files with an empty `category`. A first manual check returned 167 vectors, all with 18 fields, but 162 reported category 0 (no information), so the ADS-B category serves as a cross-check, not as the aircraft category itself. **Before Start (or Resume), the collection laptop must run `git switch main` and `git pull origin main`**; the scheduled task calls `src/collect.py` from this folder, and no new packages are needed.
+
 ## Commands
 
 From this project folder, inspect status:
