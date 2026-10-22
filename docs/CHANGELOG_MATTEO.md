@@ -30,7 +30,7 @@ Ein Eintrag pro Änderung, als Vorlage für Notion. Punkt-Nummern beziehen sich 
 
 ### Punkt 1 – `extended=1` und ADS-B-Kategorie
 
-**Datum · Branch · PR-Link:** 2026-10-22 · `fix/sammler-extended` · PR-Link folgt
+**Datum · Branch · PR-Link:** 2026-10-22 · `fix/sammler-extended` · https://github.com/kernwrob/Data-Analytics-Aviation/pull/1
 
 **Punkt:** 1
 
@@ -53,7 +53,7 @@ Ein Eintrag pro Änderung, als Vorlage für Notion. Punkt-Nummern beziehen sich 
 
 ### Punkt 2 – Rohdaten vollständig
 
-**Datum · Branch · PR-Link:** 2026-10-22 · `fix/sammler-extended` · PR-Link folgt
+**Datum · Branch · PR-Link:** 2026-10-22 · `fix/sammler-extended` · https://github.com/kernwrob/Data-Analytics-Aviation/pull/1
 
 **Punkt:** 2
 
@@ -71,7 +71,7 @@ Ein Eintrag pro Änderung, als Vorlage für Notion. Punkt-Nummern beziehen sich 
 
 ### Punkt 3 – Doku und PR
 
-**Datum · Branch · PR-Link:** 2026-10-22 · `fix/sammler-extended` · PR-Link folgt
+**Datum · Branch · PR-Link:** 2026-10-22 · `fix/sammler-extended` · https://github.com/kernwrob/Data-Analytics-Aviation/pull/1
 
 **Punkt:** 3
 
