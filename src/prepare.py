@@ -36,7 +36,10 @@ def read_states(paths):
             rows.append(row)
     if not rows:
         raise ValueError("No aircraft observations. Collect snapshots first.")
-    return pd.DataFrame(rows)
+    # Fixed columns: 17-field (pre-extended) vectors keep an empty category column.
+    frame = pd.DataFrame(rows, columns=[*FIELDS, "snapshot_time"])
+    frame["category"] = frame["category"].astype("Int64")
+    return frame
 
 
 def clean_and_join(raw, airport_raw, config):

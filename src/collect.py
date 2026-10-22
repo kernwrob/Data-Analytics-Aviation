@@ -42,7 +42,8 @@ def save_response(response, folder, suffix, entry):
 def retrieve(source, config, collection_mode="manual"):
     """Log one outcome per attempt, without response bodies or credentials."""
     url = {"airports": AIRPORT_URL, "snapshot": STATE_URL, "metadata": METADATA_URL}[source]
-    params = config["bbox"] if source == "snapshot" else None
+    # extended=1 adds the ADS-B emitter category as an 18th state-vector field.
+    params = {**config["bbox"], "extended": 1} if source == "snapshot" else None
     entry = {"source": source, "source_url": url, "params": params,
              "attempted_at_utc": datetime.now(timezone.utc).isoformat(),
              "status": None, "auth_mode": "anonymous", "collection_mode": collection_mode}
@@ -89,7 +90,10 @@ def retrieve(source, config, collection_mode="manual"):
             if any(not isinstance(s, list) or len(s) not in (17, 18)
                    for s in payload["states"] or []):
                 raise ValueError("Unsupported state vector.")
-            entry.update(snapshot_time=payload["time"], state_count=len(payload["states"] or []))
+            states = payload["states"] or []
+            # Share of vectors carrying the category field; None when the snapshot is empty.
+            entry.update(snapshot_time=payload["time"], state_count=len(states),
+                         category_present=sum(len(s) == 18 for s in states) / len(states) if states else None)
             folder, suffix = "data/raw/opensky", ".json"
     except (requests.RequestException, ValueError, KeyError, RuntimeError) as exc:
         # Exception messages can contain request details; log only their class.
