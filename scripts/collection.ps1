@@ -68,7 +68,8 @@ if ($Action -eq 'Start') {
     $end = $begin.AddDays($Days)
     if ($begin -le [DateTimeOffset]::Now) { throw 'Choose a future StartAt.' }
     if ($existing -and $existing.State -ne 'Disabled') { throw 'Main collection is already enabled. Pause or resume it instead of adding a second collector.' }
-    if ($existing -and (Test-Path -LiteralPath $scheduleFile)) {
+    # Checked even without a local task: the window may have been started on the Mac (scripts/collection_mac.sh).
+    if (Test-Path -LiteralPath $scheduleFile) {
         $previous = Get-Content -LiteralPath $scheduleFile -Raw | ConvertFrom-Json
         if ([DateTimeOffset]::Parse($previous.end_utc) -gt [DateTimeOffset]::Now) { throw 'A paused window is still valid. Use Resume to preserve its deadline.' }
     }
@@ -81,8 +82,9 @@ if ($Action -eq 'Start') {
     [IO.File]::WriteAllText($scheduleFile, ($details | ConvertTo-Json), $utf8)
     Record-Control 'start' $details
 } else {
-    if (-not $existing -or -not (Test-Path -LiteralPath $scheduleFile)) { throw 'Start a chosen collection window first.' }
-    if ($existing.State -ne 'Disabled') { Write-Output 'Main collection is already enabled; no second task started.'; return }
+    # A missing local task is allowed: Resume continues a window paused on the Mac after copying data/raw.
+    if (-not (Test-Path -LiteralPath $scheduleFile)) { throw 'Start a chosen collection window first.' }
+    if ($existing -and $existing.State -ne 'Disabled') { Write-Output 'Main collection is already enabled; no second task started.'; return }
     $details = Get-Content -LiteralPath $scheduleFile -Raw | ConvertFrom-Json
     $end = [DateTimeOffset]::Parse($details.end_utc)
     $begin = [DateTimeOffset]::Now.AddMinutes(5)

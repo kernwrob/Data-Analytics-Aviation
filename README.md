@@ -30,7 +30,7 @@ On the tested machine, `python` works while `py -0p` reports no installed Python
 
 Metadata is optional; skip its download if unavailable. Original dated files and SHA-256 acquisition records are preserved. The official metadata is out of date (server timestamp November 2024); see `docs/METADATA.md` for fields, duplicate resolution, coverage and limitations.
 
-Main collection has not been started. Choose its date, duration and designated computer after reviewing the pilot. `scripts/collection.ps1` provides Start, Pause, Resume and Status; see `docs/COLLECTION.md` for exact commands and travelling-laptop behavior. It keeps five-minute sampling, uses absolute paths and preserves normal sleep/shutdown behavior. Offline/sleep periods are missing observations. After reboot sign in and inspect the manifest; deliberate pauses require Resume. Do not launch competing collectors. Failure entries record status and retry information without credentials.
+Main collection has not been started. Choose its date, duration and designated computer after reviewing the pilot. `scripts/collection.ps1` (Windows) and `scripts/collection_mac.sh` (macOS, launchd) provide Start, Pause, Resume and Status, sharing one schedule so the collector can be handed over between computers; see `docs/COLLECTION.md` for exact commands and travelling-laptop behavior. It keeps five-minute sampling, uses absolute paths and preserves normal sleep/shutdown behavior. Offline/sleep periods are missing observations. After reboot sign in and inspect the manifest; deliberate pauses require Resume. Do not launch competing collectors. Failure entries record status and retry information without credentials.
 
 After collecting enough observations:
 

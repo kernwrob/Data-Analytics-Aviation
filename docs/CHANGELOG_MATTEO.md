@@ -86,3 +86,21 @@ Ein Eintrag pro Änderung, als Vorlage für Notion. Punkt-Nummern beziehen sich 
 **Auswirkung auf Daten/Ergebnisse:** keine.
 
 **Offene Fragen an die Gruppe:** Wer macht den `git pull` auf dem Sammel-Laptop (Robin?), und wann startet die Hauptsammlung?
+
+---
+
+## Mac-Sammler und Wechsel Windows ↔ Mac
+
+**Datum · Branch · PR-Link:** 2026-11-11 · `matteo/Data-Analytics-Aviation` · –
+
+**Was wurde geändert:** Neues Skript `scripts/collection_mac.sh` als Mac-Gegenstück zu `collection.ps1` (Aktionen `start`, `pause`, `resume`, `status`). Es registriert einen launchd-Agent, der alle 5 Minuten `src/collect.py snapshot --scheduled --until-utc …` aufruft. `collection.ps1` wurde minimal angepasst: `Start` verweigert einen neuen Zeitraum auch dann, wenn das Zeitfenster auf dem Mac gestartet wurde, und `Resume` funktioniert auch ohne lokalen Task (Übergabe Mac → Windows). In `docs/COLLECTION.md` gibt es neue Abschnitte zum Mac und zur Übergabe, im README einen Satz.
+
+**Warum:** Die Hauptsammlung soll wahlweise auf Matteos Mac oder auf einem Windows-Laptop laufen können. Der Ordner `data/raw` wandert mit dem Sammler, deshalb müssen nie zwei Datenstände zusammengeführt werden.
+
+**Geänderte Dateien und Funktionen:** `scripts/collection_mac.sh` (neu), `scripts/collection.ps1`, `docs/COLLECTION.md`, `README.md`, `docs/AI_USAGE_LOG.csv`, `docs/CHANGELOG_MATTEO.md`.
+
+**Wie getestet:** Syntaxcheck (`bash -n`) und Simulation unter Linux mit nachgebautem `launchctl`: Start, doppelter Start wird verweigert, Pause, neuer Start bei gültigem Fenster wird verweigert, Resume, Resume mit einer von Windows geschriebenen Zeitplan-Datei. Ein echter Lauf auf macOS steht noch aus. Die Windows-Änderung ist nicht auf Windows getestet.
+
+**Auswirkung auf Daten/Ergebnisse:** keine, `collect.py` ist unverändert.
+
+**Offene Fragen an die Gruppe:** Auf welchem Gerät startet die Hauptsammlung, und ab wann?
