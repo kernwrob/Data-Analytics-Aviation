@@ -30,6 +30,19 @@ class ComparisonTests(unittest.TestCase):
         encoder = model[0].named_transformers_["category"][-1]
         self.assertEqual(encoder.categories_[0].tolist(), ["Jet landplane"])
 
+    def test_wind_model_is_optional_and_never_uses_target_derived_columns(self):
+        from src.model_comparison import WIND, TARGET_DERIVED
+        self.assertNotIn("D: spatial, category and wind", make_comparison_models())
+        models = make_comparison_models(include_wind=True)
+        features, model = models["D: spatial, category and wind"]
+        self.assertTrue(set(WIND) <= set(features))
+        self.assertFalse(TARGET_DERIVED.intersection(features))
+        train = pd.DataFrame({feature: [1., 2., 3., 4.] for feature in SPATIAL})
+        train["tailwind_ms"], train["crosswind_ms"] = [0., np.nan, 10., -5.], [1., 2., np.nan, 0.]
+        train["aircraft_category"] = "Jet landplane"
+        model.fit(train[features], [10., 20., 30., 40.])
+        self.assertTrue(np.isfinite(model.predict(train[features])).all())
+
     def test_comparison_refuses_pilot_data(self):
         with self.assertRaisesRegex(RuntimeError, "seven observed"):
             compare_models(pd.DataFrame({"date_utc": ["2026-10-01"]}),

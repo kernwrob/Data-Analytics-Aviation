@@ -5,5 +5,5 @@
   "far_km": 60,
   "max_age_seconds": 60,
   "interval_seconds": 300,
-  "weather": {"grid_step_deg": 0.5, "pressure_levels": [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200]}
+  "weather": {"grid_step_deg": 0.5, "pressure_levels": [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150]}
 }

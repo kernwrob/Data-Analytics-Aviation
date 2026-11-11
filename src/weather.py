@@ -7,9 +7,10 @@ Raw responses are saved unchanged under data/raw/weather/ and logged in data/raw
 so export_data.py freezes them like the other sources. src/prepare.py then attaches the wind to every
 observation with a row-preserving left join (table observation_wind, view observations_with_wind).
 
-Matching per observation: nearest full UTC hour, nearest grid point, and the pressure level whose
-geopotential height is closest to the aircraft's geometric altitude. Wind is modelled, not measured at
-the aircraft; the level gap is stored so large vertical mismatches stay visible.
+Matching per observation: nearest full UTC hour, nearest grid point, and linear interpolation (u/v
+components) between the two pressure levels whose geopotential heights bracket the aircraft's geometric
+altitude. Above/below the level range the edge level is used and the vertical gap is stored. Wind is
+modelled, not measured at the aircraft.
 """
 import argparse
 import hashlib
@@ -25,9 +26,9 @@ import requests
 ROOT = Path(__file__).resolve().parents[1]
 WEATHER_URL = "https://historical-forecast-api.open-meteo.com/v1/forecast"
 DEFAULTS = {"grid_step_deg": 0.5,
-            "pressure_levels": [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200]}
+            "pressure_levels": [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150]}
 WIND_COLUMNS = ["wind_time_utc", "wind_grid_lat", "wind_grid_lon", "wind_level_hpa", "wind_level_height_m",
-                "wind_level_gap_m", "wind_speed_ms", "wind_dir_deg", "tailwind_ms", "crosswind_ms",
+                "wind_level_gap_m", "wind_interpolated", "wind_speed_ms", "wind_dir_deg", "tailwind_ms", "crosswind_ms",
                 "airspeed_est_ms", "wind_matched"]
 
 
@@ -167,6 +168,46 @@ def wind_components(velocity, track_deg, wind_speed, wind_from_deg):
     return tail, cross, airspeed
 
 
+def vertical_wind(candidates):
+    """One row per observation: wind linearly interpolated (as u/v components) between the pressure
+    levels just below and above the aircraft. Outside the level range the nearest edge level is used and
+    the vertical distance is kept in `gap` (0 when interpolated)."""
+    import numpy as np
+    import pandas as pd
+    c = candidates.copy()
+    toward = np.radians(c.wind_dir_deg + 180.0)
+    c["u"], c["v"] = c.wind_speed_ms * np.sin(toward), c.wind_speed_ms * np.cos(toward)
+    below = c[c.height_m <= c.geo_altitude]
+    above = c[c.height_m > c.geo_altitude]
+    below = below.loc[below.groupby("row").height_m.idxmax()].set_index("row")
+    above = above.loc[above.groupby("row").height_m.idxmin()].set_index("row")
+    rows = sorted(set(below.index) | set(above.index))
+    out = c.drop_duplicates("row").set_index("row").loc[rows, ["time_utc", "grid_lat", "grid_lon",
+                                                               "geo_altitude", "velocity", "true_track"]].copy()
+    both = below.index.intersection(above.index)
+    only_below = below.index.difference(above.index)
+    only_above = above.index.difference(below.index)
+    for col in ("u", "v", "level_hpa", "height_m"):
+        out[col] = np.nan
+    out["gap"], out["interpolated"] = np.nan, 0
+    b, a = below.loc[both], above.loc[both]
+    weight = (b.geo_altitude - b.height_m) / (a.height_m - b.height_m)
+    out.loc[both, "u"] = b.u + weight * (a.u - b.u)
+    out.loc[both, "v"] = b.v + weight * (a.v - b.v)
+    nearer_is_below = weight <= 0.5
+    out.loc[both, "level_hpa"] = np.where(nearer_is_below, b.level_hpa, a.level_hpa)
+    out.loc[both, "height_m"] = np.where(nearer_is_below, b.height_m, a.height_m)
+    out.loc[both, "gap"], out.loc[both, "interpolated"] = 0.0, 1
+    for edge, idx in ((below, only_below), (above, only_above)):
+        e = edge.loc[idx]
+        out.loc[idx, ["u", "v", "level_hpa", "height_m"]] = e[["u", "v", "level_hpa", "height_m"]].to_numpy()
+        out.loc[idx, "gap"] = (e.height_m - e.geo_altitude).abs()
+    out["wind_speed_ms"] = np.hypot(out.u, out.v)
+    out["wind_dir_deg"] = np.degrees(np.arctan2(-out.u, -out.v)) % 360.0
+    out["level_hpa"] = out.level_hpa.astype(int)
+    return out
+
+
 def attach_wind(observations, weather):
     """Row-preserving left join of modelled wind onto observations, keyed by (icao24, time_position)."""
     import numpy as np
@@ -189,14 +230,14 @@ def attach_wind(observations, weather):
         obs["time_utc"] = pd.to_datetime(obs.time_position, unit="s", utc=True).dt.round("h")
         candidates = obs.merge(weather, on=["time_utc", "grid_lat", "grid_lon"], how="inner")
         if not candidates.empty:
-            candidates["gap"] = (candidates.height_m - candidates.geo_altitude).abs()
-            best = candidates.loc[candidates.groupby("row").gap.idxmin()].set_index("row")
+            best = vertical_wind(candidates)
             tail, cross, airspeed = wind_components(best.velocity.to_numpy(), best.true_track.to_numpy(),
                                                     best.wind_speed_ms.to_numpy(), best.wind_dir_deg.to_numpy())
             idx = best.index.to_numpy()
             values = {"wind_time_utc": best.time_utc.astype(str), "wind_grid_lat": best.grid_lat,
                       "wind_grid_lon": best.grid_lon, "wind_level_hpa": best.level_hpa,
                       "wind_level_height_m": best.height_m, "wind_level_gap_m": best.gap,
+                      "wind_interpolated": best.interpolated,
                       "wind_speed_ms": best.wind_speed_ms, "wind_dir_deg": best.wind_dir_deg,
                       "tailwind_ms": tail, "crosswind_ms": cross, "airspeed_est_ms": airspeed}
             result["wind_time_utc"] = result["wind_time_utc"].astype(object)
@@ -208,11 +249,13 @@ def attach_wind(observations, weather):
     matched = result[result.wind_matched.eq(1)]
     audit.update({"matched_observations": len(matched),
                   "match_fraction": len(matched) / len(result) if len(result) else 0.0,
+                  "interpolated_share": float(matched.wind_interpolated.mean()) if len(matched) else None,
                   "median_level_gap_m": float(matched.wind_level_gap_m.median()) if len(matched) else None,
                   "share_level_gap_over_500m": float((matched.wind_level_gap_m > 500).mean()) if len(matched) else None,
                   "weather_time_min_utc": str(weather.time_utc.min()) if not weather.empty else None,
                   "weather_time_max_utc": str(weather.time_utc.max()) if not weather.empty else None})
     result["wind_matched"] = result.wind_matched.astype(int)
+    result["wind_interpolated"] = result.wind_interpolated.fillna(0).astype(int)
     return result, audit
 
 

@@ -73,9 +73,23 @@ class WindJoinTests(unittest.TestCase):
         self.assertAlmostEqual(result.tailwind_ms.iloc[0], 10.0)   # from north, flying south
         self.assertAlmostEqual(result.tailwind_ms.iloc[1], 40.0)   # from west, flying east
         self.assertTrue(np.isnan(result.tailwind_ms.iloc[2]))      # no track, no component
-        self.assertAlmostEqual(result.wind_level_gap_m.iloc[0], 300.0)
+        self.assertAlmostEqual(result.wind_level_gap_m.iloc[0], 300.0)   # below the lowest level: edge
+        self.assertEqual(result.wind_interpolated.tolist(), [0, 0, 1, 0])
         self.assertEqual(audit["matched_observations"], 3)
         self.assertAlmostEqual(audit["match_fraction"], 0.75)
+
+    def test_vertical_interpolation_uses_components(self):
+        # Halfway between 850 hPa (1500 m, 10 m/s from N) and 250 hPa (10400 m, 40 m/s from W).
+        obs = pd.DataFrame({"icao24": ["m"], "time_position": [T0], "latitude": [47.0], "longitude": [8.0],
+                            "geo_altitude": [5950.0], "velocity": [200.0], "true_track": [90.0]})
+        result, audit = weather.attach_wind(obs, weather.load_weather([self.path]))
+        row = result.iloc[0]
+        self.assertEqual(row.wind_interpolated, 1)
+        self.assertEqual(row.wind_level_gap_m, 0.0)
+        self.assertAlmostEqual(row.wind_speed_ms, np.hypot(20.0, 5.0))
+        self.assertAlmostEqual(row.wind_dir_deg, (np.degrees(np.arctan2(-20.0, 5.0))) % 360)
+        self.assertAlmostEqual(row.tailwind_ms, 20.0)
+        self.assertEqual(audit["interpolated_share"], 1.0)
 
     def test_no_weather_keeps_rows(self):
         obs = pd.DataFrame({"icao24": ["a"], "time_position": [T0], "latitude": [47.0], "longitude": [8.0],

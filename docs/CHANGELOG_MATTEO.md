@@ -134,3 +134,19 @@ Ein Eintrag pro Änderung, als Vorlage für Notion. Punkt-Nummern beziehen sich 
 **Auswirkung auf Daten/Ergebnisse:** Tabelle `observations` unverändert. Wind nur in den neuen Tabellen bzw. der View.
 
 **Offene Fragen an die Gruppe:** Entscheid in #22: Wind als Feature in den Modellen (z. B. Rückenwind als zusätzliche Variable) oder nur beschreibend?
+
+---
+
+## Wind: vertikale Interpolation, 150 hPa, Modell D
+
+**Datum · Branch · PR-Link:** 2026-11-11 · `matteo/Data-Analytics-Aviation` · –
+
+**Was wurde geändert:** `src/weather.py` interpoliert den Wind jetzt linear zwischen den zwei Druckniveaus über und unter dem Flugzeug, und zwar als Ost-/Nord-Komponenten (neue Funktion `vertical_wind`, neue Spalte `wind_interpolated`, Audit `interpolated_share`). Zusätzliches Niveau 150 hPa (ca. 13,5 km) in `config.json`. `src/model_comparison.py` hat ein optionales Modell D (Raum + Kategorie + Rücken-/Seitenwind) und eine Prüfung, dass keine vom Ziel abgeleitete Spalte (z. B. `airspeed_est_ms`) als Feature verwendet wird.
+
+**Warum:** Beim ersten echten Abruf lagen 22 % der Beobachtungen mehr als 500 m neben der nächsten Windstufe. Nach der Interpolation sind 96 % interpoliert; der Rest liegt über 200 hPa und wird mit 150 hPa abgedeckt.
+
+**Geänderte Dateien und Funktionen:** `src/weather.py` (`vertical_wind`, `attach_wind`), `src/model_comparison.py`, `config.json`, `tests/test_weather.py`, `tests/test_coverage_and_models.py`, `docs/WEATHER.md`.
+
+**Wie getestet:** 31/31 Tests grün (2 neue: Interpolation mit Richtungswechsel, Modell D ohne Ziel-Leakage). `prepare.py` auf dem Snapshot vom 22.10. neu gebaut: 124/124 gematcht, 96 % interpoliert.
+
+**Auswirkung auf Daten/Ergebnisse:** `observations` unverändert. Wegen der neuen Druckstufe lädt `python src/weather.py fetch` den 22.10. einmal neu.
