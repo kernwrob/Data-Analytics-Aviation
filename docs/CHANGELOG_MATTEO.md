@@ -150,3 +150,33 @@ Ein Eintrag pro Änderung, als Vorlage für Notion. Punkt-Nummern beziehen sich 
 **Wie getestet:** 31/31 Tests grün (2 neue: Interpolation mit Richtungswechsel, Modell D ohne Ziel-Leakage). `prepare.py` auf dem Snapshot vom 22.10. neu gebaut: 124/124 gematcht, 96 % interpoliert.
 
 **Auswirkung auf Daten/Ergebnisse:** `observations` unverändert. Wegen der neuen Druckstufe lädt `python src/weather.py fetch` den 22.10. einmal neu.
+
+---
+
+## EDA: Wind und Flugzeugtyp in Notebook 01 (Roadmap CC-2, #16, #17)
+
+**Datum · Branch · PR-Link:** 2026-11-11 · `matteo/Data-Analytics-Aviation` · –
+
+**Was wurde geändert:** `notebooks/01_data_and_eda.ipynb` hat einen neuen Abschnitt «Wind and aircraft type» mit fünf Blöcken. Alle lesen per SQL aus `observations_with_wind`, `observations_enriched` und `weather_levels`:
+1. Tabelle Höhenband × Zone mit mittlerem Wind, Rückenwind und Gegenwind-Anteil. Es zählen nur Zeilen mit `wind_matched = 1`. Der Anteil `wind_interpolated` wird pro Höhenband und Zone und zusätzlich pro Höhenband allein ausgewiesen.
+2. Grafik: Grundgeschwindigkeit und geschätzte Fluggeschwindigkeit (`airspeed_est_ms`) über der Höhe, nur beschreibend.
+3. Rückenwind nach Flugrichtung in Sektoren: Ost = `true_track` 45–135°, West = 225–315°, Rest = Nord/Süd. Dazu ein Histogramm, ein Boxplot pro Höhenband und eine Tabelle.
+4. Anteil der Beobachtungen und der Flugzeuge pro Kategorie und Zone, inkl. `unknown/other`. Die Anteile rechnet SQL mit einer Fensterfunktion.
+5. Folium-Karte: Windpfeile des Rasters für eine wählbare Stunde und Druckstufe (Standard: die Stunde mit den meisten Beobachtungen, 250 hPa). Die Pfeile zeigen nach `wind_dir_deg + 180°`, also dorthin, wohin der Wind weht. Die Beobachtungen dieser Stunde sind nach Rückenwind eingefärbt.
+
+Nach jedem Block steht ein Interpretations-Platzhalter mit Leitfragen für die Gruppe. Das Wind-Audit (`weather_integration_audit`) steht neu im Datenqualitätsteil. Ohne Winddaten überspringt das Notebook die Wind-Blöcke mit einem Hinweis.
+
+**Warum:** Die Roadmap verlangt Wind und Kategorie in der EDA (Pflicht 4 «reiche EDA», Bonus Kreativität und Karte). Die Zerlegung «Grundgeschwindigkeit = Flugzeug + Wind» soll schon in der EDA sichtbar sein.
+
+**Geänderte Dateien und Funktionen:** `notebooks/01_data_and_eda.ipynb` (Datenqualitäts-Zelle, neuer Abschnitt mit `flight_direction` und `wind_arrow`). Neue Ausgaben: `outputs/figures/ground_vs_airspeed_altitude.png`, `tailwind_by_direction.png`, `category_share_by_zone.png`, `wind_map.html` und `outputs/tables/weather_integration_audit.csv`, `wind_by_altitude_zone.csv`, `wind_interpolation_by_altitude.csv`, `tailwind_by_direction.csv`, `category_share_by_zone.csv`.
+
+**Wie getestet:**
+- Ganzes Notebook mit `jupyter nbconvert --execute` auf dem Pilot-Snapshot vom 22.10. (124 Beobachtungen, alle mit Wind) ausgeführt, ohne Fehler.
+- Zusätzlich in Kopien der Datenbank: (a) ohne Wind-Tabellen, dabei wurden die Hinweise ausgegeben und die Wind-Blöcke übersprungen; (b) mit Test-Kategorien, um Legende und Farben in Block 4 zu prüfen.
+- Grafiken und Karte angeschaut. Die Pfeile zeigen bei Wind aus ~300° nach Ost-Südost. Ostflüge haben auf 9–11 km im Median +44 m/s Rückenwind, Westflüge −48 m/s, was zur Vorzeichen-Konvention passt.
+- Unit-Tests: 31/31 grün (`python -m unittest discover -s tests`).
+- Kein neuer Unit-Test, die Hilfsfunktionen bleiben im Notebook (so entschieden).
+
+**Auswirkung auf Daten/Ergebnisse:** Keine Änderung an `src/`, Datenbank oder Modellen. Das Notebook ist ohne Ausgaben gespeichert. Auf dem Mac fehlen die Metadaten, deshalb ist dort alles `unknown/other`. Die Zahlen aus dem Pilot (ein Snapshot) sind kein Ergebnis.
+
+**Offene Fragen an die Gruppe:** Welche Stunde und Druckstufe soll die Karte für die Präsentation zeigen? Die Interpretationen in den Platzhaltern schreibt die Gruppe nach der Hauptsammlung.
