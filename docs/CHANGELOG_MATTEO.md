@@ -180,3 +180,38 @@ Nach jedem Block steht ein Interpretations-Platzhalter mit Leitfragen für die G
 **Auswirkung auf Daten/Ergebnisse:** Keine Änderung an `src/`, Datenbank oder Modellen. Das Notebook ist ohne Ausgaben gespeichert. Auf dem Mac fehlen die Metadaten, deshalb ist dort alles `unknown/other`. Die Zahlen aus dem Pilot (ein Snapshot) sind kein Ergebnis.
 
 **Offene Fragen an die Gruppe:** Welche Stunde und Druckstufe soll die Karte für die Präsentation zeigen? Die Interpretationen in den Platzhaltern schreibt die Gruppe nach der Hauptsammlung.
+
+---
+
+## PostgreSQL-Bonus: Mirror und Notebook 04 (Roadmap CC-3, #22)
+
+**Datum · Branch · PR-Link:** 2026-11-11 · `matteo/Data-Analytics-Aviation` · –
+
+**Was wurde geändert:**
+- Neues Skript `src/postgres_mirror.py`. Es kopiert die SQLite-Tabellen in eine PostgreSQL-Datenbank `aviation` mit expliziten Typen (`TIMESTAMPTZ`, `DATE`, `BIGINT`, `DOUBLE PRECISION`, …), Primärschlüsseln und Fremdschlüsseln (`observations.airport_ident → airports`, `observation_wind → observations`). Gespiegelt werden `airports`, `observations`, `aircraft_metadata`, `weather_levels`, `observation_wind` und die drei Audit-Tabellen.
+- Alles läuft in einer einzigen Transaktion: Tabellen neu anlegen, Daten per `COPY` laden, Zeilenzahlen mit SQLite vergleichen. Bei einem Fehler bleibt PostgreSQL unverändert.
+- Die Verbindung kommt aus der Umgebungsvariable `DATABASE_URL` oder aus der Datei `.env` im Projektordner (gitignored). Vorlage ist `.env.example`. Im Code steht kein Passwort, und die URL wird immer mit `***` statt Passwort ausgegeben.
+- Neues Notebook `notebooks/04_postgresql.ipynb` mit vier Teilen:
+  1. Abgleich mit SQLite: Zeilenzahlen aller Tabellen und dieselbe SQL-Aggregation in beiden Datenbanken.
+  2. Join Beobachtungen – Flughäfen – Wind.
+  3. Aggregation nach Zone und Höhenband mit echtem Median (`percentile_cont`), dazu eine Grafik.
+  4. Fensterfunktionen `ROW_NUMBER`/`RANK`: die schnellsten Flugzeuge pro Flughafen, jedes Flugzeug nur einmal.
+- Doku `docs/POSTGRESQL.md` mit Installation, `.env`, Laden der Variablen in VS Code-Notebooks, je einem Abschnitt für macOS und Windows (für Kevin und Robin) und einer Fehlertabelle.
+- `psycopg[binary]` und `sqlalchemy` in `requirements.txt`, die Versionen fest in `requirements-lock.txt`. README angepasst.
+
+**Warum:** Das ist ein Bonuspunkt («PostgreSQL mit Joins/Aggregationen aus Python»), und ohne ihn liegt das Maximum bei 21/22. SQLite bleibt die Hauptdatenbank, PostgreSQL ist nur eine Kopie.
+
+**Geänderte Dateien und Funktionen:**
+- Neu: `src/postgres_mirror.py` (`TABLES`, `load_database_url`, `redact`, `create_table_sql`, `check_schema`, `read_sqlite`, `to_copy_rows`, `mirror`, `engine`), `notebooks/04_postgresql.ipynb`, `docs/POSTGRESQL.md`, `tests/test_postgres_mirror.py`, `.env.example`.
+- Geändert: `requirements.txt`, `requirements-lock.txt`, `README.md`.
+
+**Wie getestet:**
+- 8 neue Offline-Tests ohne Server: Typen und Schlüssel im `CREATE TABLE`, Lade-Reihenfolge der Fremdschlüssel, Schema passt zu allen Tabellen, die `prepare.py` schreibt (mit und ohne Wind), Umwandlung von leeren Werten, Ganzzahlen und Zeiten, `.env`-Logik, kein Passwort in Ausgabe und Code. Gesamt 39/39 grün.
+- Lokal mit PostgreSQL 16 (Homebrew): Mirror auf dem Pilot-Snapshot, alle Zeilenzahlen gleich. Ein zweiter Lauf liefert dasselbe Ergebnis.
+- Absichtlich kaputte SQLite-Kopie (Flughafen existiert nicht): Der Fremdschlüssel greift, und PostgreSQL bleibt unverändert (geprüft an `weather_levels`).
+- Notebook 04 mit `nbconvert` ausgeführt, ohne Fehler. Die Grafik habe ich angeschaut und so angepasst, dass Linien bei Bändern mit zu wenigen Flugzeugen unterbrochen sind statt gerade durchgezogen.
+- Der Windows-Abschnitt ist nicht auf Windows getestet.
+
+**Auswirkung auf Daten/Ergebnisse:** Keine. SQLite, `prepare.py` und die anderen Notebooks bleiben unverändert. Die PostgreSQL-Kopie muss nach jedem `prepare.py` neu gebaut werden.
+
+**Offene Fragen an die Gruppe:** Antwort des Dozenten zu #22 abwarten: zählt die Kopie aus SQLite als «PostgreSQL statt SQLite»? Kevin oder Robin sollten den Windows-Weg einmal durchspielen.

@@ -49,6 +49,7 @@ Open notebooks in order and select the `.venv` kernel. The modeling notebook req
 - `src/prepare.py`: cleans observations, spatially assigns an airport, performs an audited SQL join, writes SQLite and audit tables.
 - `src/aircraft_metadata.py`: normalizes metadata keys, resolves/audits duplicates and validates a row-preserving left join.
 - `src/model_comparison.py`: optional fixed A/B/C regression comparison on the original evaluation frames, retaining unknown categories.
+- `src/postgres_mirror.py`: optional bonus; mirrors the SQLite tables into PostgreSQL with explicit types, primary and foreign keys, in one checked transaction (`DATABASE_URL` from the environment or `.env`; see `docs/POSTGRESQL.md`).
 - `src/export_data.py`: freezes a dated, checksum-verified data package and rebuilds its SQLite database without changing originals or uploading.
 - `src/pilot_report.py`: verifies raw-file checksums and reports collection attempts, hourly coverage, cleaning and proximity/altitude coverage.
 - `docs/PILOT.md`: completed technical pilot evidence and methods explanation; earlier one-day setup is retained as history.
@@ -56,6 +57,7 @@ Open notebooks in order and select the `.venv` kernel. The modeling notebook req
 - `notebooks/01_data_and_eda.ipynb`: SQL, descriptive analysis, group comparisons, maps.
 - `notebooks/02_models.ipynb`: baseline, altitude regression, spatial regression, random forest; later-day and held-out-aircraft evaluations.
 - `notebooks/03_statistics_and_clusters.ipynb`: exploratory correlation with p-values and standardized k-means.
+- `notebooks/04_postgresql.ipynb`: optional; joins, aggregations and window functions in PostgreSQL from Python, with a row-count check against SQLite.
 - `docs/AI_USAGE_LOG.csv`, `docs/DECISIONS.md`, `docs/FINAL_CHECKLIST.md`: fill as work progresses.
 - `presentation/VIDEO_OUTLINE.md`: final 15-minute presentation structure.
 
@@ -63,7 +65,7 @@ Open notebooks in order and select the `.venv` kernel. The modeling notebook req
 
 Windows setup, anonymous scheduled downloads, cleaning, row-preserving airport/metadata joins and SQLite integrity have been checked locally. Focused offline tests (`.venv\Scripts\python.exe -m unittest discover -s tests -v`) cover collection failures, coverage states, optional metadata and unseen categories; fixtures are not project evidence. OAuth, actual sleep/reboot recovery, extended collection, final multi-day model evaluation and lecturer acceptance remain unverified. `requirements-lock.txt` records the tested environment.
 
-SQLite has been built from pilot data. PostgreSQL is a planned optional extension, not already implemented. Maps and EDA can be explored on the pilot; modeling still requires at least seven observed dates. A final presentation must use real generated outputs and group-approved interpretations.
+SQLite has been built from pilot data. An optional PostgreSQL mirror (bonus) is built from SQLite with explicit types and keys; SQLite stays the primary database (see `docs/POSTGRESQL.md`). Maps and EDA can be explored on the pilot; modeling still requires at least seven observed dates. A final presentation must use real generated outputs and group-approved interpretations.
 
 For public GitHub, publish code and documentation first. Decide what raw OpenSky data can be redistributed under its terms before adding datasets. Deliver required data on Moodle in accordance with those terms and course instructions. Do not upload credentials found in the reference files.
 
