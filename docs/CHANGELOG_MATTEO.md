@@ -104,3 +104,15 @@ Ein Eintrag pro Änderung, als Vorlage für Notion. Punkt-Nummern beziehen sich 
 **Auswirkung auf Daten/Ergebnisse:** keine, `collect.py` ist unverändert.
 
 **Offene Fragen an die Gruppe:** Auf welchem Gerät startet die Hauptsammlung, und ab wann?
+
+---
+
+## Setup-Skript für den Sammel-Mac
+
+**Datum · Branch · PR-Link:** 2026-11-11 · `matteo/Data-Analytics-Aviation` · –
+
+**Was wurde geändert:** `scripts/setup_sammler_mac.sh` richtet einen frischen Mac als Sammelgerät ein (Git, Repo klonen, `.venv` nur mit `requests`, Testabruf, Energie-Einstellungen). `docs/SETUP_MACBOOK.md` ist die Schritt-für-Schritt-Anleitung dazu (MacBook Pro A1502).
+
+**Wie getestet:** Syntaxcheck (`bash -n`). Echter Lauf auf dem MacBook steht noch aus.
+
+**Auswirkung auf Daten/Ergebnisse:** keine.
