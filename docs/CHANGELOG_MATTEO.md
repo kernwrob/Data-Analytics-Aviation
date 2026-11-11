@@ -116,3 +116,21 @@ Ein Eintrag pro Änderung, als Vorlage für Notion. Punkt-Nummern beziehen sich 
 **Wie getestet:** Syntaxcheck (`bash -n`). Echter Lauf auf dem MacBook steht noch aus.
 
 **Auswirkung auf Daten/Ergebnisse:** keine.
+
+---
+
+## Winddaten als dritte Quelle (Issue #36)
+
+**Datum · Branch · PR-Link:** 2026-11-11 · `matteo/Data-Analytics-Aviation` · –
+
+**Was wurde geändert:** Neues Modul `src/weather.py`. `fetch` holt pro UTC-Tag modellierten Wind (Open-Meteo Historical Forecast API, 10 Druckniveaus, 0.5°-Raster über dem Sammelgebiet) und speichert die Rohantworten mit Manifest-Eintrag. `src/prepare.py` hängt jeder Beobachtung den Wind an (nächste Stunde, nächster Rasterpunkt, Niveau mit der nächsten geopotentiellen Höhe) und berechnet Rückenwind, Seitenwind und geschätzte Fluggeschwindigkeit. Neue Tabellen `weather_levels`, `observation_wind`, `weather_integration_audit` und View `observations_with_wind`. Einstellungen in `config.json` unter `weather`. Doku in `docs/WEATHER.md`.
+
+**Warum:** Ein Teil der Unterschiede in der Grundgeschwindigkeit ist Wind, nicht Flugzeugverhalten. Der Dozent wollte zusätzliche Komplexität. Winddaten lassen sich nachträglich holen, deshalb blockiert das die Sammlung nicht.
+
+**Geänderte Dateien und Funktionen:** `src/weather.py` (neu), `src/prepare.py` (`main`), `config.json`, `tests/test_weather.py` (neu), `docs/WEATHER.md` (neu), `README.md`.
+
+**Wie getestet:** 7 neue Offline-Tests (Windkomponenten, Raster, Stunden-/Punkt-/Niveau-Zuordnung, zeilenerhaltender Join, Fetch mit gemocktem Server inkl. Fehlerfall, `prepare.main` mit View). Bestehende Tests in `test_collect` und `test_metadata` weiterhin grün. Ein echter Abruf bei Open-Meteo steht noch aus (aus der Testumgebung nicht erreichbar).
+
+**Auswirkung auf Daten/Ergebnisse:** Tabelle `observations` unverändert. Wind nur in den neuen Tabellen bzw. der View.
+
+**Offene Fragen an die Gruppe:** Entscheid in #22: Wind als Feature in den Modellen (z. B. Rückenwind als zusätzliche Variable) oder nur beschreibend?
