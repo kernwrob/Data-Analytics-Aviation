@@ -215,3 +215,19 @@ Nach jedem Block steht ein Interpretations-Platzhalter mit Leitfragen für die G
 **Auswirkung auf Daten/Ergebnisse:** Keine. SQLite, `prepare.py` und die anderen Notebooks bleiben unverändert. Die PostgreSQL-Kopie muss nach jedem `prepare.py` neu gebaut werden.
 
 **Offene Fragen an die Gruppe:** Antwort des Dozenten zu #22 abwarten: zählt die Kopie aus SQLite als «PostgreSQL statt SQLite»? Kevin oder Robin sollten den Windows-Weg einmal durchspielen.
+
+---
+
+## Fix: Notebook 01, Block 2 (Linien über dünne Höhenbänder)
+
+**Datum · Branch · PR-Link:** 2026-11-11 · `matteo/Data-Analytics-Aviation` · –
+
+**Was wurde geändert:** Die Median-Linien in der Grafik «Ground speed vs. estimated airspeed» werden jetzt unterbrochen, wenn ein Höhenband zu wenige Flugzeuge hat. Vorher wurden solche Bänder weggelassen, und die Linie lief gerade darüber hinweg. Die Schwelle zählt neu einzelne Flugzeuge statt Beobachtungen (mindestens 5, gleiche Regel wie in Notebook 04). Die Tabelle unter der Grafik zeigt pro Band zusätzlich die Anzahl Flugzeuge.
+
+**Warum:** Eine gerade Linie über ein fehlendes Band täuscht einen Verlauf vor, den die Daten nicht zeigen. Das ist mir bei Notebook 04 (CC-3) aufgefallen.
+
+**Geänderte Dateien und Funktionen:** `notebooks/01_data_and_eda.ipynb` (Zelle Block 2).
+
+**Wie getestet:** Notebook auf dem Pilot-Snapshot ausgeführt, die Grafik ist unverändert, weil alle Bänder genug Flugzeuge haben. Zusätzlich auf einer Kopie, in der das Band 3000–5000 m nur noch 4 Flugzeuge hat: Die Linie bricht dort ab. Unit-Tests 39/39 grün.
+
+**Auswirkung auf Daten/Ergebnisse:** Nur die Darstellung, keine Daten.
