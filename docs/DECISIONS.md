@@ -41,3 +41,11 @@ The user identified omitted neighbouring airports as a possible problem. A read-
 Proposed, not adopted: make the main question the incremental value of spatial context and optional category beyond altitude, with a stronger altitude-only baseline and the existing separate later-day/held-out-aircraft evaluations. Retain named-airport distances and add regional airport context using a documented inclusion rule and boundary buffer. Group/lecturer review is needed before changing classifications; existing config and database remain intact.
 
 The user supplied the course evaluation text, preserved in `COURSE_EVALUATION.md`. The concept has a ten-minute slot and eight evaluation criteria, with formal topic approval at that presentation. Its grade weighting is not specified in the excerpt; do not assume it is ungraded.
+
+## Collector fix — 22 October 2026
+
+| Decision/action | Reason and evidence | Status |
+|---|---|---|
+| Request `extended=1` for every snapshot and log `category_present` | The lecturer wants aircraft category central to the analysis; the ADS-B emitter category is only returned with `extended=1`. One manual snapshot: 167/167 vectors with 18 fields, 162 with category 0 (no information) | Proposed by Matteo in PR `fix/sammler-extended`; must be merged before main collection starts |
+| Use the ADS-B category only as a cross-check | Category 0 dominates the first live check; the typecode-based category (planned) remains the analysis variable | Pending group review with main-collection data |
+| Keep `category` as a fixed column in `observations` | Pilot-only (17-field) data previously produced no `category` column at all; it is now always present and empty for old vectors | Covered by offline tests |

@@ -1,4 +1,8 @@
-"""Optional A/B/C linear comparison with the SAME existing evaluation frames."""
+"""Optional A/B/C(/D) linear comparison with the SAME existing evaluation frames.
+
+D adds modelled wind along/across the track (src/weather.py). `airspeed_est_ms` is derived from the
+target (ground speed) and must never be a feature.
+"""
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
@@ -10,21 +14,28 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 ALTITUDE = ["geo_altitude"]
 SPATIAL = ["geo_altitude", "distance_km", "latitude", "longitude", "near_indicator", "altitude_x_near"]
-assert not {"velocity", "speed_kmh", "icao24"}.intersection(SPATIAL)
+WIND = ["tailwind_ms", "crosswind_ms"]
+TARGET_DERIVED = {"velocity", "speed_kmh", "airspeed_est_ms", "icao24"}
+assert not TARGET_DERIVED.intersection(SPATIAL + WIND)
 
 
-def make_comparison_models():
+def make_comparison_models(include_wind=False):
     def numeric():
         return make_pipeline(SimpleImputer(strategy="median"), StandardScaler())
     category = make_pipeline(SimpleImputer(strategy="constant", fill_value="unknown/other"),
                              OneHotEncoder(handle_unknown="ignore", drop=None))
-    return {
+    models = {
         "A: altitude only": (ALTITUDE, make_pipeline(numeric(), LinearRegression())),
         "B: altitude and spatial": (SPATIAL, make_pipeline(numeric(), LinearRegression())),
         "C: spatial and aircraft category": (SPATIAL + ["aircraft_category"], make_pipeline(
             ColumnTransformer([("numeric", numeric(), SPATIAL),
                                ("category", category, ["aircraft_category"])]), LinearRegression())),
     }
+    if include_wind:
+        models["D: spatial, category and wind"] = (SPATIAL + WIND + ["aircraft_category"], make_pipeline(
+            ColumnTransformer([("numeric", numeric(), SPATIAL + WIND),
+                               ("category", category, ["aircraft_category"])]), LinearRegression()))
+    return models
 
 
 def compare_models(train, test, split_name):
@@ -38,8 +49,11 @@ def compare_models(train, test, split_name):
         if frame[["icao24", "time_position"]].duplicated().any():
             raise ValueError("Duplicate observation keys in comparison frames.")
         frame["aircraft_category"] = frame.get("aircraft_category", pd.Series(index=frame.index, dtype=str)).fillna("unknown/other")
+    # D only when wind was joined and at least some training rows have it (missing values are imputed).
+    include_wind = all(c in train and c in test for c in WIND) and train[WIND].notna().any().all()
     rows = []
-    for name, (features, model) in make_comparison_models().items():
+    for name, (features, model) in make_comparison_models(include_wind).items():
+        assert not TARGET_DERIVED.intersection(features)
         model.fit(train[features], train.velocity)
         predicted = model.predict(test[features])
         for zone in ("all", "near", "far"):

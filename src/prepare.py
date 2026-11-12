@@ -8,8 +8,10 @@ import numpy as np
 import pandas as pd
 try:
     from .aircraft_metadata import normalize_icao24, prepare_metadata, enrich_observations
+    from .weather import load_weather, attach_wind, WIND_COLUMNS
 except ImportError:
     from aircraft_metadata import normalize_icao24, prepare_metadata, enrich_observations
+    from weather import load_weather, attach_wind, WIND_COLUMNS
 
 ROOT = Path(__file__).resolve().parents[1]
 FIELDS = ["icao24", "callsign", "origin_country", "time_position", "last_contact",
@@ -36,7 +38,10 @@ def read_states(paths):
             rows.append(row)
     if not rows:
         raise ValueError("No aircraft observations. Collect snapshots first.")
-    return pd.DataFrame(rows)
+    # Fixed columns: 17-field (pre-extended) vectors keep an empty category column.
+    frame = pd.DataFrame(rows, columns=[*FIELDS, "snapshot_time"])
+    frame["category"] = frame["category"].astype("Int64")
+    return frame
 
 
 def clean_and_join(raw, airport_raw, config):
@@ -105,10 +110,16 @@ def main():
     enriched, join_audit = enrich_observations(data, metadata)
     metadata_audit = pd.DataFrame([{**source_audit, **join_audit,
         "pinned_source": metadata_paths[0].relative_to(ROOT).as_posix() if metadata_paths else "unavailable"}])
+    # Optional modelled wind (src/weather.py fetch); absence keeps every observation, wind columns empty.
+    weather_paths = sorted((ROOT / "data/raw/weather").glob("*.json"))
+    weather = load_weather(weather_paths)
+    wind, wind_audit = attach_wind(data, weather)
+    wind_audit = pd.DataFrame([{**wind_audit, "weather_files": len(weather_paths)}])
     folder = ROOT / "data/processed"
     folder.mkdir(parents=True, exist_ok=True)
     with closing(sqlite3.connect(folder / "aircraft.sqlite")) as db, db:
         db.execute("DROP VIEW IF EXISTS observations_enriched")
+        db.execute("DROP VIEW IF EXISTS observations_with_wind")
         airports.to_sql("airports", db, if_exists="replace", index=False)
         data.to_sql("observations", db, if_exists="replace", index=False)
         audit.to_sql("integration_audit", db, if_exists="replace", index=False)
@@ -117,6 +128,14 @@ def main():
         metadata.to_sql("aircraft_metadata", db, if_exists="replace", index=False)
         metadata_audit.to_sql("metadata_integration_audit", db, if_exists="replace", index=False)
         db.execute("CREATE UNIQUE INDEX aircraft_metadata_key ON aircraft_metadata(icao24)")
+        weather.assign(time_utc=weather.time_utc.astype(str)).to_sql("weather_levels", db, if_exists="replace", index=False)
+        wind.to_sql("observation_wind", db, if_exists="replace", index=False)
+        wind_audit.to_sql("weather_integration_audit", db, if_exists="replace", index=False)
+        db.execute("CREATE UNIQUE INDEX observation_wind_key ON observation_wind(icao24,time_position)")
+        db.execute("CREATE VIEW observations_with_wind AS SELECT o.*, " +
+                   ", ".join(f"w.{c}" for c in WIND_COLUMNS) +
+                   " FROM observations o LEFT JOIN observation_wind w"
+                   " ON o.icao24=w.icao24 AND o.time_position=w.time_position")
         db.execute("""CREATE VIEW observations_enriched AS
             SELECT o.*, m.aircraft_manufacturer, m.aircraft_model, m.aircraft_typecode,
                    m.aircraft_icao_description, COALESCE(m.aircraft_category, 'unknown/other') AS aircraft_category,
@@ -153,9 +172,11 @@ def main():
     aircraft_types.to_csv(folder / "aircraft_types.csv", index=False)
     type_counts.to_csv(folder / "aircraft_type_counts.csv", index=False)
     category_summary.to_csv(folder / "aircraft_categories.csv", index=False)
+    wind_audit.to_csv(folder / "weather_integration_audit.csv", index=False)
     print(audit.to_string(index=False))
     print(summary.to_string(index=False))
     print(metadata_audit.to_string(index=False))
+    print(wind_audit.to_string(index=False))
 
 
 if __name__ == "__main__":

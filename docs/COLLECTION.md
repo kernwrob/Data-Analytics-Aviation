@@ -2,6 +2,8 @@
 
 The technical pilot passed and was stopped on 1 October at 15:56:57 Europe/Zurich. The original pilot task is disabled and preserved. Main collection has **not** been started: choose the start date, duration and owner first.
 
+**Change on 22 October 2026 (ADS-B category):** snapshot requests now send `extended=1`, so OpenSky returns 18 instead of 17 fields per state vector; field 18 is the ADS-B emitter `category`. Each successful manifest entry logs `category_present`, the share of vectors with 18 fields. Raw responses are still saved unchanged and nothing is filtered during collection; `prepare.py` reads old 17-field pilot files with an empty `category`. A first manual check returned 167 vectors, all with 18 fields, but 162 reported category 0 (no information), so the ADS-B category serves as a cross-check, not as the aircraft category itself. **Before Start (or Resume), the collection laptop must run `git switch main` and `git pull origin main`**; the scheduled task calls `src/collect.py` from this folder, and no new packages are needed.
+
 ## Commands
 
 From this project folder, inspect status:
@@ -50,3 +52,28 @@ Preparation rebuilds the database; raw collection alone does not update it. The 
 Successful responses, failed requests, deferred requests and intervals with no invocation are different. A successful empty response describes OpenSky's available reports at that instant. Downtime is missing data, never zero traffic. Keep five-minute sampling and report coverage by local hour/day so travel-related missingness is visible. If travel repeatedly removes important hours, extend the chosen collection after review or nominate another single stable collector; do not run competing machines.
 
 `scripts/start_pilot.ps1` is preserved as the historical pilot setup utility; do not use it to resume the main study.
+
+## Collecting on a Mac (`scripts/collection_mac.sh`)
+
+Added 11 November 2026. The Mac script is the counterpart of `collection.ps1` with the same actions and the same files (`data/raw/main_schedule.json`, `data/raw/collection_control.jsonl`, `data/raw/schedules/`). It registers a per-user launchd agent (`ch.zhaw.aircraftproject.maincollection`) that runs `src/collect.py snapshot --scheduled --until-utc …` every five minutes at :00, :05, … . Ticks before the chosen start are skipped; `--until-utc` stops after the deadline; the recency guard in `collect.py` suppresses extra requests after the Mac wakes up. Python comes from the project `.venv` (`.venv/bin/python`).
+
+```bash
+chmod +x scripts/collection_mac.sh          # once, if Git did not keep the flag
+scripts/collection_mac.sh status
+scripts/collection_mac.sh start --start-at 2026-11-12T09:00:00+01:00 --days 14   # example only
+scripts/collection_mac.sh pause
+scripts/collection_mac.sh resume
+```
+
+Like on Windows, the Mac is **not** woken up: sleep, closed lid on battery, logout or shutdown mean missing observations. A locked screen is fine. To keep it collecting, leave the Mac open and on power and enable *System Settings → Battery → Options → Prevent automatic sleeping on power adapter when the display is off* (or run `caffeinate -s` in a Terminal while collecting). Output is logged to `data/raw/logs/collector_mac.log`. Daily check: `scripts/collection_mac.sh status` and `tail -n 5 data/raw/manifest.jsonl`.
+
+## Switching the collector between Windows and Mac
+
+There is always **one** live `data/raw` folder and **one** active collector. The folder travels with the collector, so no datasets ever need to be merged:
+
+1. On the current computer: `Pause` (Windows) or `pause` (Mac), and check Status says it is no longer running.
+2. Copy the whole `data/raw` folder to the other computer (ZIP via USB stick or the restricted OneDrive folder), replacing its `data/raw`. Keep the ZIP until the next export.
+3. On the other computer: `git pull`, then `Resume` / `resume`. The original deadline in `main_schedule.json` is kept; `start` refuses to open a new window while the old one is still valid.
+4. Note the handover (time, from → to) in `docs/DECISIONS.md` or the group chat. The gap between pause and resume is missing data, not zero traffic, and is visible in the manifest and control log.
+
+Never resume on the second computer before the first one is paused.
