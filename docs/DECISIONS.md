@@ -5,7 +5,7 @@ Confirmed: aircraft movements; three students; six or more weeks.
 | Date | Decision | Reason | Owner | Evidence / lecturer response |
 |---|---|---|---|---|
 | Pending | Final research question | Airport/feature-set/generalization comparisons | All | Pending |
-| Pending | Collection owner and dates | Reliable repeated group-owned collection | Student A | Pending |
+| 2026-11-12 | Collection: old MacBook at Matteo, 24/7, every 5 min, 12.11. 19:30 → 26.11. 19:30 (Europe/Zurich), enlarged bounding box | Reliable repeated group-owned collection; full coverage around all three airports | Matteo (collector and daily monitoring) | See «Main collection» and «Bounding box enlarged» below, issue #47 |
 | Pending | 30/60 km cutoffs and freshness rule | Freeze before inspecting final results | All | Pilot review |
 | Pending | Analysis date rule for exploratory correlation | Avoid selecting a date for a desired p-value | Student C | Pending |
 | Pending | SQLite plus optional PostgreSQL | Resolve conflicting minimum and bonus wording | All | Pending |
@@ -49,3 +49,25 @@ The user supplied the course evaluation text, preserved in `COURSE_EVALUATION.md
 | Request `extended=1` for every snapshot and log `category_present` | The lecturer wants aircraft category central to the analysis; the ADS-B emitter category is only returned with `extended=1`. One manual snapshot: 167/167 vectors with 18 fields, 162 with category 0 (no information) | Proposed by Matteo in PR `fix/sammler-extended`; must be merged before main collection starts |
 | Use the ADS-B category only as a cross-check | Category 0 dominates the first live check; the typecode-based category (planned) remains the analysis variable | Pending group review with main-collection data |
 | Keep `category` as a fixed column in `observations` | Pilot-only (17-field) data previously produced no `category` column at all; it is now always present and empty for old vectors | Covered by offline tests |
+
+## Main collection — 12 November 2026
+
+| Decision/action | Reason and evidence | Status |
+|---|---|---|
+| Collect on the old MacBook Pro (A1502, macOS Monterey 12.7.6, user `Sammler`, automatic login, no system sleep on power) with `scripts/collection_mac.sh` | One stable, always-on device at home; a travelling laptop would cause gaps | Set up 11–12 Nov (see `SETUP_MACBOOK.md`); the Windows collector stays off |
+| 24/7, one snapshot every 5 minutes, anonymous API, `extended=1` | Matches the plan announced to the lecturers. 288 requests per day fit the 400 anonymous credits per day; a request costs 1 credit while the box is ≤ 25 square degrees ([OpenSky REST API](https://openskynetwork.github.io/opensky-api/rest.html)) | Running |
+| Duration 14 days: 12.11.2026 19:30 → 26.11.2026 19:30 Europe/Zurich (18:30 → 18:30 UTC) | Enough for the minimum criteria and for finishing the analysis by end of November. Extending to about 10 December was considered and rejected (issue #47) | Running, ends automatically |
+| Daily monitoring by Matteo (`collection_mac.sh status`, also via SSH from his work Mac); gaps are noted with their reason | Collection gaps must be explained in the final report | Ongoing |
+| First check 12.11. 20:08 Europe/Zurich: 9 successful snapshots (1 setup test + 8 scheduled from 19:30), 0 failures, 84 aircraft in the 20:05 snapshot | — | OK |
+
+## Bounding box enlarged — 12 November 2026
+
+**Problem.** The original box (45.7–48.0 °N, 5.8–10.6 °E) was too tight around two of the three airports. Distance from the airport to the nearest edge: Geneva 24 km (west) and 60 km (south), Basel 46 km (north), Zurich 60 km (north). Share of each zone inside the box: Geneva near zone (0–30 km) 95 %, Geneva middle ring (30–60 km) 68 %, Basel middle ring 91 %, Zurich 100 %. Traffic west of Geneva over France (approaches and departures towards the south-west) was therefore missing, which made the airport comparison asymmetric.
+
+**Decision.** New box **45.6–48.2 °N, 5.2–10.6 °E** (`config.json`), 14.04 square degrees. Minimum distance to an edge is now 82 km for Zurich (north), 70 km for Geneva (west) and 68 km for Basel (north), so the near zone and the 30–60 km ring are fully inside for all three airports. The box stays below 25 square degrees, so each request still costs 1 credit and the daily budget is unchanged.
+
+**How it was applied.** On the collector: `pause` → `git pull` → `resume`. The deadline (26.11. 19:30) is unchanged. The exact switch time is the first manifest entry with `"lomin": 5.2` in `params`; every snapshot stores its box in the manifest, so the change is fully traceable.
+
+**Analysis rule.** Snapshots taken with the old box (12.11. from 19:30 until the switch, roughly 1–2 hours) stay in `data/raw` but are excluded from the main analysis, so that every analysed snapshot covers the same area. The exclusion is based on the `params` in the manifest and is counted in the integration audit (issue: «Kartenausschnitt vergrössern»). The weather grid in `src/weather.py` follows the box in `config.json` automatically (more grid points). Pilot data from 1.10. and 22.10. used the old box and remain exploratory only.
+
+**Status.** Decided by Matteo on 12.11.2026 before any main-collection results were inspected; to be acknowledged by the group.
