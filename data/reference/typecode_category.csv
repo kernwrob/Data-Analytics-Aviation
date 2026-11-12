@@ -1,0 +1,141 @@
+typecode,category,example_model,source_note
+A19N,Kurzstrecke,Airbus A319neo,schema example (DECISIONS 2026-11-12)
+A20N,Kurzstrecke,Airbus A320neo,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+A21N,Kurzstrecke,Airbus A321neo,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+A318,Kurzstrecke,Airbus A318,schema example (DECISIONS 2026-11-12)
+A319,Kurzstrecke,Airbus A319,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+A320,Kurzstrecke,Airbus A320,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+A321,Kurzstrecke,Airbus A321,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+B38M,Kurzstrecke,Boeing 737 MAX 8,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+B39M,Kurzstrecke,Boeing 737 MAX 9,schema example (DECISIONS 2026-11-12)
+B734,Kurzstrecke,Boeing 737-400,observed 2026-11-12; classic 737 narrowbody
+B736,Kurzstrecke,Boeing 737-600,schema example (DECISIONS 2026-11-12)
+B737,Kurzstrecke,Boeing 737-700,schema example (DECISIONS 2026-11-12)
+B738,Kurzstrecke,Boeing 737-800,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+B739,Kurzstrecke,Boeing 737-900,schema example (DECISIONS 2026-11-12)
+B752,Kurzstrecke,Boeing 757-200,schema example (DECISIONS 2026-11-12)
+BCS1,Kurzstrecke,Airbus A220-100,"schema example (DECISIONS 2026-11-12); observed 2026-11-12; A220 is >120 seats in airline use, so narrowbody not regional"
+BCS3,Kurzstrecke,Airbus A220-300,schema example (DECISIONS 2026-11-12); observed 2026-11-12; see BCS1
+CRJ2,Regionaljet,Bombardier CRJ200,observed 2026-11-12; also covers the Challenger 850 corporate variant of the same airframe (observed); mapped by airframe
+CRJ7,Regionaljet,Bombardier CRJ700,schema example (DECISIONS 2026-11-12)
+CRJ9,Regionaljet,Bombardier CRJ900,schema example (DECISIONS 2026-11-12)
+CRJX,Regionaljet,Bombardier CRJ1000,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+E135,Regionaljet,Embraer ERJ 135,schema example (DECISIONS 2026-11-12)
+E145,Regionaljet,Embraer ERJ 145,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+E170,Regionaljet,Embraer 170,schema example (DECISIONS 2026-11-12)
+E190,Regionaljet,Embraer 190,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+E195,Regionaljet,Embraer 195,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+E290,Regionaljet,Embraer 190-E2,schema example (DECISIONS 2026-11-12)
+E295,Regionaljet,Embraer 195-E2,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+E75L,Regionaljet,Embraer 175 (long wing),schema example (DECISIONS 2026-11-12)
+E75S,Regionaljet,Embraer 175 (short wing),"schema example (DECISIONS 2026-11-12); observed 2026-11-12; one record has model 'A320', typecode trusted"
+RJ1H,Regionaljet,Avro RJ100,schema example (DECISIONS 2026-11-12)
+RJ85,Regionaljet,Avro RJ85,schema example (DECISIONS 2026-11-12)
+A306,Langstrecke,Airbus A300-600,"observed 2026-11-12; widebody (mostly freighters), medium range; mapped by fuselage width as the schema defines"
+A332,Langstrecke,Airbus A330-200,schema example (DECISIONS 2026-11-12)
+A333,Langstrecke,Airbus A330-300,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+A338,Langstrecke,Airbus A330-800neo,schema example (DECISIONS 2026-11-12)
+A339,Langstrecke,Airbus A330-900neo,schema example (DECISIONS 2026-11-12)
+A343,Langstrecke,Airbus A340-300,schema example (DECISIONS 2026-11-12)
+A346,Langstrecke,Airbus A340-600,schema example (DECISIONS 2026-11-12)
+A359,Langstrecke,Airbus A350-900,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+A35K,Langstrecke,Airbus A350-1000,schema example (DECISIONS 2026-11-12)
+A388,Langstrecke,Airbus A380-800,schema example (DECISIONS 2026-11-12)
+B744,Langstrecke,Boeing 747-400,schema example (DECISIONS 2026-11-12)
+B748,Langstrecke,Boeing 747-8,"schema example (DECISIONS 2026-11-12); observed 2026-11-12; observed one is a BBJ (VIP), mapped by airframe"
+B763,Langstrecke,Boeing 767-300,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+B764,Langstrecke,Boeing 767-400,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+B772,Langstrecke,Boeing 777-200,schema example (DECISIONS 2026-11-12)
+B77L,Langstrecke,Boeing 777-200LR / 777F,schema example (DECISIONS 2026-11-12)
+B77W,Langstrecke,Boeing 777-300ER,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+B788,Langstrecke,Boeing 787-8,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+B789,Langstrecke,Boeing 787-9,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+B78X,Langstrecke,Boeing 787-10,schema example (DECISIONS 2026-11-12)
+MD11,Langstrecke,McDonnell Douglas MD-11,schema example (DECISIONS 2026-11-12)
+AN12,Turboprop,Antonov An-12,observed 2026-11-12; four-engine turboprop freighter
+AT43,Turboprop,ATR 42-300,schema example (DECISIONS 2026-11-12)
+AT45,Turboprop,ATR 42-500,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+AT72,Turboprop,ATR 72,schema example (DECISIONS 2026-11-12)
+AT75,Turboprop,ATR 72-500,schema example (DECISIONS 2026-11-12)
+AT76,Turboprop,ATR 72-600,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+B190,Turboprop,Beechcraft 1900D,observed 2026-11-12; twin turboprop commuter
+B350,Turboprop,Beechcraft King Air 350,schema example (DECISIONS 2026-11-12)
+BE20,Turboprop,Beechcraft King Air 200,observed 2026-11-12; twin turboprop
+D328,Turboprop,Dornier 328,schema example (DECISIONS 2026-11-12)
+DH8A,Turboprop,Dash 8-100,schema example (DECISIONS 2026-11-12)
+DH8C,Turboprop,Dash 8-300,schema example (DECISIONS 2026-11-12)
+DH8D,Turboprop,Dash 8 Q400,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+PC12,Turboprop,Pilatus PC-12,"schema example (DECISIONS 2026-11-12); observed 2026-11-12; single-engine, included by schema"
+SB20,Turboprop,Saab 2000,schema example (DECISIONS 2026-11-12)
+SF34,Turboprop,Saab 340,schema example (DECISIONS 2026-11-12)
+C25A,Business-Jet,Cessna Citation CJ2,schema example (DECISIONS 2026-11-12)
+C25B,Business-Jet,Cessna Citation CJ3,schema example (DECISIONS 2026-11-12)
+C25C,Business-Jet,Cessna Citation CJ4,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+C25M,Business-Jet,Cessna Citation M2,observed 2026-11-12
+C510,Business-Jet,Cessna Citation Mustang,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+C525,Business-Jet,Cessna CitationJet,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+C550,Business-Jet,Cessna Citation II,schema example (DECISIONS 2026-11-12)
+C560,Business-Jet,Cessna Citation V,schema example (DECISIONS 2026-11-12)
+C56X,Business-Jet,Cessna Citation Excel,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+C680,Business-Jet,Cessna Citation Sovereign,schema example (DECISIONS 2026-11-12)
+C68A,Business-Jet,Cessna Citation Latitude,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+C700,Business-Jet,Cessna Citation Longitude,schema example (DECISIONS 2026-11-12)
+C750,Business-Jet,Cessna Citation X,schema example (DECISIONS 2026-11-12)
+CL30,Business-Jet,Bombardier Challenger 300,schema example (DECISIONS 2026-11-12)
+CL35,Business-Jet,Bombardier Challenger 350,schema example (DECISIONS 2026-11-12)
+CL60,Business-Jet,Bombardier Challenger 600 series,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+E50P,Business-Jet,Embraer Phenom 100,schema example (DECISIONS 2026-11-12)
+E545,Business-Jet,Embraer Legacy 450 / Praetor 500,schema example (DECISIONS 2026-11-12)
+E550,Business-Jet,Embraer Legacy 500 / Praetor 600,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+E55P,Business-Jet,Embraer Phenom 300,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+F2TH,Business-Jet,Dassault Falcon 2000,schema example (DECISIONS 2026-11-12)
+F900,Business-Jet,Dassault Falcon 900,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+FA50,Business-Jet,Dassault Falcon 50,schema example (DECISIONS 2026-11-12)
+FA7X,Business-Jet,Dassault Falcon 7X,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+FA8X,Business-Jet,Dassault Falcon 8X,schema example (DECISIONS 2026-11-12)
+G200,Business-Jet,Gulfstream G200,"observed 2026-11-12; source description says L1P (piston), which is wrong for this jet; typecode trusted"
+G280,Business-Jet,Gulfstream G280,schema example (DECISIONS 2026-11-12)
+GA6C,Business-Jet,Gulfstream G600,observed 2026-11-12
+GL5T,Business-Jet,Bombardier Global 5000,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+GL7T,Business-Jet,Bombardier Global 7500,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+GLEX,Business-Jet,Bombardier Global Express/6000,schema example (DECISIONS 2026-11-12)
+GLF4,Business-Jet,Gulfstream IV,schema example (DECISIONS 2026-11-12)
+GLF5,Business-Jet,Gulfstream V,schema example (DECISIONS 2026-11-12)
+GLF6,Business-Jet,Gulfstream G650,schema example (DECISIONS 2026-11-12)
+H25B,Business-Jet,Hawker 800,schema example (DECISIONS 2026-11-12)
+HDJT,Business-Jet,HondaJet,schema example (DECISIONS 2026-11-12)
+LJ35,Business-Jet,Learjet 35,schema example (DECISIONS 2026-11-12)
+LJ45,Business-Jet,Learjet 45,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+LJ60,Business-Jet,Learjet 60,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+LJ75,Business-Jet,Learjet 75,schema example (DECISIONS 2026-11-12)
+PC24,Business-Jet,Pilatus PC-24,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+PRM1,Business-Jet,Beechcraft Premier I,observed 2026-11-12
+A109,Sonstige,AgustaWestland AW109,schema example (DECISIONS 2026-11-12)
+A139,Sonstige,AgustaWestland AW139,observed 2026-11-12
+A169,Sonstige,AgustaWestland AW169,observed 2026-11-12
+A189,Sonstige,AgustaWestland AW189,observed 2026-11-12
+AS32,Sonstige,Airbus AS332/AS532 Super Puma/Cougar,"observed 2026-11-12; helicopter, observed one is military"
+AS50,Sonstige,Airbus AS350 Ecureuil,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+B429,Sonstige,Bell 429,observed 2026-11-12
+BR23,Sonstige,BRM Aero Bristell,observed 2026-11-12; light aircraft
+C152,Sonstige,Cessna 152,observed 2026-11-12
+C172,Sonstige,Cessna 172,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+C210,Sonstige,Cessna 210 Centurion,observed 2026-11-12
+CC19,Sonstige,CubCrafters XCub,observed 2026-11-12
+DA40,Sonstige,Diamond DA40,schema example (DECISIONS 2026-11-12)
+DA42,Sonstige,Diamond DA42,schema example (DECISIONS 2026-11-12)
+DR40,Sonstige,Robin DR400,observed 2026-11-12
+EC30,Sonstige,Airbus EC130,observed 2026-11-12
+EC35,Sonstige,Eurocopter EC135,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+EC45,Sonstige,Eurocopter EC145,schema example (DECISIONS 2026-11-12)
+G2CA,Sonstige,Guimbal Cabri G2,observed 2026-11-12; light helicopter
+GLID,Sonstige,Glider (generic),observed 2026-11-12
+H135,Sonstige,Airbus H135,schema example (DECISIONS 2026-11-12)
+H145,Sonstige,Airbus H145,schema example (DECISIONS 2026-11-12)
+P28A,Sonstige,Piper PA-28 (<= 200 hp),schema example (DECISIONS 2026-11-12); observed 2026-11-12
+P28B,Sonstige,Piper PA-28 (> 200 hp),observed 2026-11-12
+PC6T,Sonstige,Pilatus PC-6 Turbo Porter,"observed 2026-11-12; single-engine turboprop utility/skydiving aircraft, not an airliner-like turboprop: Sonstige"
+PIVI,Sonstige,Pipistrel Virus,observed 2026-11-12; light-sport aircraft
+R44,Sonstige,Robinson R44,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+SR22,Sonstige,Cirrus SR22,schema example (DECISIONS 2026-11-12); observed 2026-11-12
+TWEN,Sonstige,Tecnam P2010,observed 2026-11-12

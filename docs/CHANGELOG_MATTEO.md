@@ -253,3 +253,67 @@ Nach jedem Block steht ein Interpretations-Platzhalter mit Leitfragen für die G
 
 **Offene Fragen an die Gruppe:** Entscheid zur Kenntnis nehmen. Einverstanden, dass die ersten 1–2 Stunden mit altem Ausschnitt nicht in die Hauptanalyse kommen?
 
+
+---
+
+## CC-7: Flugzeugkategorie über Typecode und Filter alter Kartenausschnitt
+
+**Datum · Branch · PR-Link:** 2026-11-12 · `matteo/Data-Analytics-Aviation` · – (Issues #12, #52)
+
+**Was wurde geändert:**
+- **Neue Metadaten-Datei:** Statt `aircraftDatabase.csv` (4.11.2024) nehmen wir neu die vollständige Monatsdatei `aircraft-database-complete-2025-08.csv` von OpenSky (616'675 Einträge, 0 Duplikate). `config.json` legt die Datei mit Pfad **und SHA-256** fest (`metadata_file`, `metadata_sha256`). `collect.py` liest die Download-URL neu aus `config.json` (`metadata_url`).
+- **Robustes Einlesen:** Die neue Datei hat ein anderes Format (einfache Anführungszeichen, camelCase, `icaoAircraftClass`). `read_metadata_csv()` erkennt beide Formate.
+- **Neue Kategorien über den Typecode:** Kurzstrecke, Regionaljet, Langstrecke, Turboprop, Business-Jet, Sonstige, Unbekannt.
+  - Zuordnung: Typecode-Tabelle → ICAO-Beschreibung (`L?T` → Turboprop, `L?P`/`H??`/`G??` → Sonstige) → Unbekannt.
+  - Jets ohne bekannten Typecode werden nicht geraten. Widersprüchliche Duplikate (Typecode oder Beschreibung) werden Unbekannt.
+  - Neue Spalte `category_source` (`typecode` / `icao_description` / `none`).
+- **Referenztabelle** `data/reference/typecode_category.csv` mit 140 Typecodes: alle Beispiele aus dem Schema plus jeder Typecode, der in den ersten 13 Snapshots vorkommt. Bei unsicheren Typen steht eine Begründung in `source_note`.
+- **SQLite:**
+  - Tabelle `typecode_categories`. Der View `observations_enriched` berechnet die Kategorie per SQL-Join, und `prepare.py` prüft, dass SQL und Python dasselbe ergeben.
+  - Neu im View: `adsb_category_label` (ADS-B-Kategorie als lesbarer Text, nur Kreuzcheck).
+  - Neue Audit-Tabelle `category_audit`, Liste `outputs/tables/unmapped_typecodes.csv`.
+- **Alter Kartenausschnitt:** `prepare.py` nimmt nur Snapshots, deren Ausschnitt laut Manifest dem aktuellen `config.json` entspricht (`require_current_bbox: true`). Snapshots ohne Manifest-Eintrag fallen auch raus.
+  - Neue Audit-Stufen `raw_all_snapshots` → `current_bbox`.
+  - Neue Tabelle `snapshot_bbox_audit`.
+- `unknown/other` heisst überall `Unbekannt` (Code, Notebooks 01/02/04, Tests).
+- Notebook 01, Block 4: neue Tabelle «Abdeckung pro Flughafen × Zone» (Anteil mit Metadaten, mit bekannter Kategorie, über Typecode). Notebook 01 zeigt neu auch das Snapshot- und das Kategorie-Audit.
+- PostgreSQL-Mirror: neue Spalten und Tabellen im Schema. `export_data.py` kopiert `data/reference/` und die gepinnte Metadaten-Datei ins Paket.
+- `.gitignore`: `data/raw_backup*/` (lokale Sicherung von `data/raw`).
+- Doku: `METADATA.md` (neue Version, Kategorien, alte Beschreibung als Historie), `DECISIONS.md` (Schema eingefroren, Metadaten-Version, Umsetzung Ausschnitt-Filter), `COLLECTION.md` (Daten nur lesend vom Sammler kopieren).
+
+**Warum:** Die alte Kategorie über die ICAO-Beschreibung hat A320, B777 und Citation in dieselbe Klasse gesteckt («Jet landplane»). Der Dozent will die Kategorie aber zentral in der Analyse. Die alte Metadaten-Datei ist laut OpenSky unvollständig und lag nur auf einem Windows-Gerät. Die Snapshots mit altem Ausschnitt decken weniger Fläche ab und würden den Flughafenvergleich verzerren.
+
+**Geänderte Dateien und Funktionen:**
+- `src/aircraft_metadata.py`: `read_metadata_csv`, `normalize_metadata_columns`, `load_typecode_categories`, `description_category`, `assign_categories` (neu); `prepare_metadata`, `enrich_observations` (angepasst); `UNKNOWN = "Unbekannt"`, `CATEGORIES`.
+- `src/prepare.py`: `manifest_bboxes`, `same_bbox`, `select_snapshots`, `count_states`, `load_pinned_metadata` (neu); `main` (Filter, Pinning, neue Tabellen, View, Audits).
+- `src/collect.py` (`retrieve`), `src/model_comparison.py`, `src/postgres_mirror.py` (`TABLES`), `src/export_data.py` (`main`).
+- `config.json`, `data/reference/typecode_category.csv` (neu), `.gitignore`.
+- Notebooks 01, 02, 04.
+- Tests: `tests/test_category_and_bbox.py` (neu, 12 Tests), Anpassungen in `test_collect.py` (+2 Tests), `test_metadata.py`, `test_weather.py`, `test_postgres_mirror.py`, `test_coverage_and_models.py`.
+- Doku: `docs/METADATA.md`, `docs/DECISIONS.md`, `docs/COLLECTION.md`.
+
+**Wie getestet:**
+- 53/53 Unit-Tests grün (vorher 39), alle offline mit kleinen Fixtures. Abgedeckt sind:
+  - Reihenfolge der Zuordnung, Typecode schlägt falsche Beschreibung, Jets werden nicht geraten
+  - Typecode-Konflikt → Unbekannt und gezählt
+  - beide CSV-Formate
+  - falsche Prüfsumme oder fehlende Datei → Abbruch, leerer Eintrag → alles Unbekannt
+  - Ausschnitt-Filter (alter raus, neuer drin, Flag aus → alles drin, fehlender Manifest-Eintrag raus, Windows-Pfad)
+  - View, ADS-B-Label und Liste der nicht gemappten Typecodes
+- Echte Daten: 13 Snapshots vom Sammel-Mac (nur lesend per `rsync` kopiert), `prepare.py` gelaufen, SQL = Python bei allen Zeilen.
+- Notebook 01 und Notebook 04 (mit neu gebautem PostgreSQL-Mirror) ohne Fehler ausgeführt, Outputs nur im Scratchpad. Die Notebooks im Repo sind ohne Outputs.
+- Notebook 02 nicht ausgeführt: Die 7-Tage-Sperre greift und bleibt.
+
+**Auswirkung auf Daten/Ergebnisse:**
+- Hauptanalyse heute: 13 Snapshots, davon 11 mit altem Ausschnitt ausgeschlossen (777 Zeilen). Es bleiben 2 Snapshots → 122 Beobachtungen, 77 Flugzeuge.
+- Metadaten-Treffer: 88,5 % der Beobachtungen (Pilot mit alter Datei: 67,3 %). Davon haben 99,1 % einen Typecode aus der Tabelle.
+- Kategorien (Hauptanalyse, Beobachtungen / Flugzeuge): Kurzstrecke 79 / 50, Unbekannt 15 / 10, Regionaljet 10 / 5, Business-Jet 8 / 5, Langstrecke 5 / 4, Turboprop 5 / 3.
+- Modell C (Raum + Kategorie) bekommt jetzt echte Klassen statt fast nur «Jet landplane». Ergebnisse gibt es erst ab 7 Sammeltagen.
+
+**Offene Fragen an die Gruppe:**
+1. Kategorie-Schema und Referenztabelle zur Kenntnis nehmen (`DECISIONS.md`, Status «to be acknowledged by the group»). Passen die Grenzfälle: A220 als Kurzstrecke, A306 als Langstrecke, CRJ2 inkl. Challenger 850 als Regionaljet, PC-6 als Sonstige?
+2. Die Metadaten-Datei (108 MB, SHA-256 `41309cab…`) geht über die gemeinsame Ablage (#14) an Kevin und Robin. Ohne sie bricht `prepare.py` mit einer klaren Meldung ab. Wer ohne Metadaten arbeiten will, setzt `"metadata_file": ""`.
+3. Die neue Datei hat eine Spalte `timestamp`. Damit könnte man bei Duplikaten den neusten Eintrag wählen. Wir behalten die bisherige Regel (vollständigster Eintrag, dann Reihenfolge). In dieser Datei gibt es **0 Duplikate** und **0 Duplikate mit unterschiedlichem Typecode**, die Frage ist also aktuell ohne Wirkung.
+4. Die Liste der nicht gemappten Typecodes ist heute leer, weil alle beobachteten Typecodes eingetragen sind. Wer prüft sie während der Sammlung (z. B. nach 7 Tagen) und ergänzt neue Typecodes?
+5. Aufgefallen, nicht Teil dieses Auftrags: 75 von 203 Zeilen fallen in der Stufe `required_fields_present` weg, alle wegen fehlender `geo_altitude`. 74 davon sind Flugzeuge am Boden (`on_ground`), die in der Stufe `airborne` ohnehin wegfielen. Die Audit-Tabelle schreibt sie also der falschen Stufe zu. Für CC-10 (Höhe aus `baro_altitude`, Reihenfolge der Filter) vormerken.
+6. Aufgefallen: Der PostgreSQL-Mirror enthält jetzt alle 616'648 Metadaten-Zeilen (vorher 0 auf dem Mac). Er läuft trotzdem in Sekunden, sollte aber nur die Flugzeuge aus den Beobachtungen spiegeln, falls er auf Windows zu langsam wird.

@@ -108,3 +108,15 @@ git pull --ff-only
 scripts/collection_mac.sh resume
 scripts/collection_mac.sh status
 ```
+
+### Copying the current data to an analysis Mac (read-only)
+
+Added 12 November 2026. The collector is only read, never changed. In a normal Terminal of the analysis Mac (VS Code's terminal may lack the macOS permission «Local Network» and then reports `No route to host`):
+
+```bash
+cd ~/Developer/ZHAW/data_analytics/LN/Data-Analytics-Aviation
+rsync -a sammler@192.168.0.59:Developer/Data-Analytics-Aviation/data/raw/ data/raw/
+python src/prepare.py
+```
+
+`rsync -a` without `--delete` adds new snapshots and replaces `manifest.jsonl` with the collector's copy. Files that exist only locally (the pinned aircraft metadata CSV, wind files) stay, but their manifest lines are gone; the metadata file remains pinned by path and SHA-256 in `config.json` (see `METADATA.md`). Wind for the main collection is fetched after the collection ends (#22). Before the first copy, move an older local `data/raw` aside (e.g. `data/raw_backup_YYYY-MM-DD`, ignored by Git) instead of merging different datasets.

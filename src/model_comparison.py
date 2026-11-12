@@ -11,6 +11,10 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+try:
+    from .aircraft_metadata import UNKNOWN
+except ImportError:
+    from aircraft_metadata import UNKNOWN
 
 ALTITUDE = ["geo_altitude"]
 SPATIAL = ["geo_altitude", "distance_km", "latitude", "longitude", "near_indicator", "altitude_x_near"]
@@ -22,7 +26,7 @@ assert not TARGET_DERIVED.intersection(SPATIAL + WIND)
 def make_comparison_models(include_wind=False):
     def numeric():
         return make_pipeline(SimpleImputer(strategy="median"), StandardScaler())
-    category = make_pipeline(SimpleImputer(strategy="constant", fill_value="unknown/other"),
+    category = make_pipeline(SimpleImputer(strategy="constant", fill_value=UNKNOWN),
                              OneHotEncoder(handle_unknown="ignore", drop=None))
     models = {
         "A: altitude only": (ALTITUDE, make_pipeline(numeric(), LinearRegression())),
@@ -48,7 +52,7 @@ def compare_models(train, test, split_name):
     for frame in (train, test):
         if frame[["icao24", "time_position"]].duplicated().any():
             raise ValueError("Duplicate observation keys in comparison frames.")
-        frame["aircraft_category"] = frame.get("aircraft_category", pd.Series(index=frame.index, dtype=str)).fillna("unknown/other")
+        frame["aircraft_category"] = frame.get("aircraft_category", pd.Series(index=frame.index, dtype=str)).fillna(UNKNOWN)
     # D only when wind was joined and at least some training rows have it (missing values are imputed).
     include_wind = all(c in train and c in test for c in WIND) and train[WIND].notna().any().all()
     rows = []

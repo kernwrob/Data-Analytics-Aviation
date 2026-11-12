@@ -53,7 +53,19 @@ def main():
         shutil.copy2(source, target)
         if checksum(target) != entry["sha256"]:
             raise ValueError(f"Export checksum mismatch: {relative}")
-    for folder in ("src", "notebooks", "docs"):
+    # The pinned metadata CSV is local-only and may lack a manifest entry after a later rsync from the
+    # collector; copy it by its config.json path and SHA-256 so prepare.py can rebuild the package.
+    config = json.loads((ROOT / "config.json").read_text())
+    pinned = (config.get("metadata_file") or "").strip()
+    if pinned and not (package / pinned).exists():
+        source = (ROOT / pinned).resolve()
+        if not source.is_relative_to((ROOT / "data/raw").resolve()):
+            raise ValueError("metadata_file is outside data/raw.")
+        if checksum(source) != config.get("metadata_sha256"):
+            raise ValueError(f"Pinned metadata checksum mismatch: {pinned}")
+        (package / pinned).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, package / pinned)
+    for folder in ("src", "notebooks", "docs", "data/reference"):
         shutil.copytree(ROOT / folder, package / folder, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".ipynb_checkpoints"))
     for name in ("config.json", "requirements.txt", "requirements-lock.txt", "README.md", "PROJECT_PLAN.md"):
         shutil.copy2(ROOT / name, package / name)
