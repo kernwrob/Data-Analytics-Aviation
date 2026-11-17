@@ -5,7 +5,8 @@ import copy
 CLEANING = {"plausibility": {"altitude_min_m": -300, "altitude_max_m": 15500, "velocity_min_ms": 0,
                              "velocity_max_ms": 350, "vertical_rate_abs_max_ms": 40},
             "flight_phase_threshold_ms": 2.5,
-            "neighbour_airports": {"idents": [], "radius_km": 15, "mode": "exclude"}}
+            "neighbour_airports": {"idents": [], "radius_km": 15, "max_height_above_airport_m": 3000,
+                                   "mode": "exclude"}}
 
 
 def with_cleaning(config):

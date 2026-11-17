@@ -25,6 +25,8 @@ BBOX_KEYS = ("lamin", "lamax", "lomin", "lomax")
 PLAUSIBILITY_KEYS = ("altitude_min_m", "altitude_max_m", "velocity_min_ms", "velocity_max_ms",
                      "vertical_rate_abs_max_ms")
 NEIGHBOUR_MODES = ("exclude", "own_zone")
+NEIGHBOUR_KEYS = ("idents", "radius_km", "max_height_above_airport_m", "mode")
+FEET_TO_M = 0.3048
 FLIGHT_PHASES = ["climb", "level", "descent", "unknown"]
 AIRPORT_COLUMNS = ["ident", "name", "iata_code", "latitude_deg", "longitude_deg", "elevation_ft"]
 # ADS-B emitter category (OpenSky state vector field 18); a cross-check only, never the aircraft category.
@@ -119,7 +121,7 @@ def cleaning_settings(config):
     plausibility = config.get("plausibility", {})
     missing += [f"plausibility.{key}" for key in PLAUSIBILITY_KEYS if key not in plausibility]
     neighbours = config.get("neighbour_airports", {})
-    missing += [f"neighbour_airports.{key}" for key in ("idents", "radius_km", "mode") if key not in neighbours]
+    missing += [f"neighbour_airports.{key}" for key in NEIGHBOUR_KEYS if key not in neighbours]
     if missing:
         raise ValueError(f"config.json lacks the cleaning settings {missing} (see docs/DECISIONS.md, CC-10).")
     if neighbours["mode"] not in NEIGHBOUR_MODES:
@@ -166,10 +168,16 @@ def select_airports(airport_raw, idents, label):
 
 
 def select_neighbour_airports(airport_raw, config):
+    """Neighbouring airports from the pinned OurAirports file; their elevation is required for the height limit."""
     idents = config["neighbour_airports"]["idents"]
     if not idents:
         return pd.DataFrame(columns=AIRPORT_COLUMNS)
-    return select_airports(airport_raw, idents, "neighbour")
+    airports = select_airports(airport_raw, idents, "neighbour")
+    no_elevation = sorted(airports.loc[pd.to_numeric(airports.elevation_ft, errors="coerce").isna(), "ident"])
+    if no_elevation:
+        raise ValueError(f"Neighbour airports without elevation_ft in the airport file: {no_elevation}. The buffer "
+                         "height limit (neighbour_airports.max_height_above_airport_m) needs it.")
+    return airports
 
 
 def nearest_airport(data, airports):
@@ -245,13 +253,18 @@ def clean_and_join(raw, airport_raw, config):
     joined["weekday_local"] = local.dt.dayofweek
     joined["speed_kmh"] = joined.velocity * 3.6
     audit.append({"stage": "airport_join", "rows": len(joined), "unmatched": 0, "gained": 0, "lost": 0})
-    # Buffer around neighbouring airports. The near zone of ZRH/GVA/BSL takes precedence (it is airport
-    # proximity already), so the frozen 30/60 km zones and the nearest-main-airport assignment never change.
+    # Buffer around neighbouring airports: inside the radius AND at most max_height_above_airport_m above the
+    # airport's elevation (approaches and departures, not overflights at cruise level). The near zone of
+    # ZRH/GVA/BSL takes precedence (it is airport proximity already), so the frozen 30/60 km zones and the
+    # nearest-main-airport assignment never change.
     if len(neighbour_airports):
         joined["neighbour_ident"], joined["neighbour_distance_km"] = nearest_airport(joined, neighbour_airports)
+        elevation_m = neighbour_airports.set_index("ident").elevation_ft.astype(float) * FEET_TO_M
+        joined["neighbour_height_m"] = joined.altitude_m - joined.neighbour_ident.map(elevation_m)
     else:
-        joined["neighbour_ident"], joined["neighbour_distance_km"] = None, np.nan
+        joined["neighbour_ident"], joined["neighbour_distance_km"], joined["neighbour_height_m"] = None, np.nan, np.nan
     joined["neighbour_buffer"] = (joined.neighbour_distance_km.le(neighbours["radius_km"]) &
+                                  joined.neighbour_height_m.le(neighbours["max_height_above_airport_m"]) &
                                   joined.zone.ne("near")).astype(int)
     if neighbours["mode"] == "exclude":
         joined = joined.loc[joined.neighbour_buffer.eq(0)].reset_index(drop=True)

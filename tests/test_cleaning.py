@@ -27,12 +27,15 @@ def raw_frame(states):
     return frame
 
 
-def clean(states, **overrides):
+def clean(states, airports=AIRPORTS, **overrides):
+    """clean_and_join on the fixture; keys of neighbour_airports go there, every other key to the top level."""
     config = copy.deepcopy(CONFIG)
     for key, value in overrides.items():
-        config["neighbour_airports" if key in ("idents", "radius_km", "mode") else key] = (
-            {**config["neighbour_airports"], key: value} if key in ("idents", "radius_km", "mode") else value)
-    return prepare.clean_and_join(raw_frame(states), AIRPORTS, config)
+        if key in prepare.NEIGHBOUR_KEYS:
+            config["neighbour_airports"][key] = value
+        else:
+            config[key] = value
+    return prepare.clean_and_join(raw_frame(states), airports, config)
 
 
 def stages(audit):
@@ -153,6 +156,47 @@ class NeighbourBufferTests(unittest.TestCase):
         self.assertTrue(data.neighbour_ident.isna().all())
         with self.assertRaisesRegex(ValueError, "neighbour airport identifiers"):
             clean(self.STATES, idents=["XXXX"])
+
+
+class BufferHeightTests(unittest.TestCase):
+    """Only approaches and departures are buffered: at most max_height_above_airport_m above the neighbour."""
+    SEA_LEVEL = AIRPORTS.assign(elevation_ft=[100., 100., 0.])  # FARN at 0 ft: height = altitude_m exactly
+
+    def test_overflight_stays_and_approach_is_removed(self):
+        states = [state("aaaaaa", lon=9.05, geo=11000.), state("bbbbbb", lon=9.05, geo=800.)]
+        data, _, audit, _ = clean(states, idents=["FARN"])
+        self.assertEqual(data.icao24.tolist(), ["aaaaaa"])
+        self.assertEqual(stages(audit).loc["neighbour_airport_buffer", "lost"], 1)
+        row = data.iloc[0]
+        # Inside the radius, but too high: kept, and visible as such for the notebook-01 count.
+        self.assertLess(row.neighbour_distance_km, 15)
+        self.assertAlmostEqual(row.neighbour_height_m, 11000. - 100 * prepare.FEET_TO_M)
+        self.assertEqual(row.neighbour_buffer, 0)
+
+    def test_limit_is_inclusive_and_comes_from_config(self):
+        states = [state("aaaaaa", lon=9.05, geo=3000.), state("bbbbbb", lon=9.05, geo=3000.1),
+                  state("cccccc", lon=8.6, geo=3500.)]  # cccccc: outside the radius, always kept
+        data, _, _, _ = clean(states, airports=self.SEA_LEVEL, idents=["FARN"])
+        self.assertEqual(sorted(data.icao24), ["bbbbbb", "cccccc"])
+        data, _, _, _ = clean(states, airports=self.SEA_LEVEL, idents=["FARN"], max_height_above_airport_m=4000)
+        self.assertEqual(data.icao24.tolist(), ["cccccc"])
+
+    def test_missing_elevation_or_setting_stops(self):
+        no_elevation = AIRPORTS.assign(elevation_ft=[100., 100., None])
+        with self.assertRaisesRegex(ValueError, "without elevation_ft.*FARN"):
+            clean([state("aaaaaa")], airports=no_elevation, idents=["FARN"])
+        config = copy.deepcopy(CONFIG)
+        del config["neighbour_airports"]["max_height_above_airport_m"]
+        with self.assertRaisesRegex(ValueError, "max_height_above_airport_m"):
+            prepare.clean_and_join(raw_frame([state("aaaaaa")]), AIRPORTS, config)
+
+    def test_own_zone_marks_only_low_rows(self):
+        states = [state("aaaaaa", lon=9.05, geo=11000.), state("bbbbbb", lon=9.05, geo=800.),
+                  state("cccccc", lon=8.25, geo=500.)]  # cccccc: near zone of TEST, never buffered
+        data, _, audit, _ = clean(states, idents=["NEAR", "FARN"], mode="own_zone")
+        self.assertEqual(data.set_index("icao24").zone.to_dict(),
+                         {"aaaaaa": "far", "bbbbbb": "neighbour", "cccccc": "near"})
+        self.assertEqual(stages(audit).loc["neighbour_airport_buffer", "lost"], 0)
 
 
 class AuditArithmeticTests(unittest.TestCase):
