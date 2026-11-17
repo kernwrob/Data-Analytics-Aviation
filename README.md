@@ -48,7 +48,9 @@ Open notebooks in order and select the `.venv` kernel. The modeling notebook req
 - `src/collect.py`: retrieves one OpenSky snapshot or airport reference file, with source manifest and SHA-256.
 - `src/prepare.py`: cleans observations, spatially assigns an airport, performs an audited SQL join, writes SQLite and audit tables.
 - `src/aircraft_metadata.py`: normalizes metadata keys, resolves/audits duplicates and validates a row-preserving left join.
-- `src/model_comparison.py`: optional fixed A/B/C regression comparison on the original evaluation frames, retaining unknown categories.
+- `src/features.py`: altitude knot features (km below/above 3,000 m), zone × altitude interactions and the 7-date guard shared by the models and the inference.
+- `src/model_comparison.py`: the single definition of the prediction models 0, A–D and RF, the later-days / other-aircraft splits, a labelled leakage demonstration, metrics in km/h, coefficient tables and bootstrap intervals (used by notebook 02).
+- `src/inference.py`: OLS with altitude × zone interaction and standard errors clustered by aircraft (hypothesis 1), slopes per zone, airport and category variants (used by notebook 03).
 - `src/postgres_mirror.py`: optional bonus; mirrors the SQLite tables into PostgreSQL with explicit types, primary and foreign keys, in one checked transaction (`DATABASE_URL` from the environment or `.env`; see `docs/POSTGRESQL.md`).
 - `src/export_data.py`: freezes a dated, checksum-verified data package and rebuilds its SQLite database without changing originals or uploading.
 - `src/pilot_report.py`: verifies raw-file checksums and reports collection attempts, hourly coverage, cleaning and proximity/altitude coverage.

@@ -1,8 +1,5 @@
 import unittest
-import numpy as np
-import pandas as pd
 from src.collection_coverage import summarize_coverage
-from src.model_comparison import make_comparison_models, compare_models, SPATIAL
 
 
 class CoverageTests(unittest.TestCase):
@@ -16,37 +13,6 @@ class CoverageTests(unittest.TestCase):
         self.assertEqual(slots.outcome.tolist(), ["successful_response", "failed_request", "no_collection"])
         self.assertTrue(slots.empty_response.iloc[0])
         self.assertEqual(summary["empty_responses"], 1)
-
-
-class ComparisonTests(unittest.TestCase):
-    def test_unseen_category_works_and_encoding_uses_training_only(self):
-        train = pd.DataFrame({feature: [1., 2., 3., 4.] for feature in SPATIAL})
-        train["aircraft_category"] = ["Kurzstrecke"] * 4
-        test = train.iloc[[0]].copy()
-        test["aircraft_category"] = "Previously unseen"
-        features, model = make_comparison_models()["C: spatial and aircraft category"]
-        model.fit(train[features], [10., 20., 30., 40.])
-        self.assertTrue(np.isfinite(model.predict(test[features])).all())
-        encoder = model[0].named_transformers_["category"][-1]
-        self.assertEqual(encoder.categories_[0].tolist(), ["Kurzstrecke"])
-
-    def test_wind_model_is_optional_and_never_uses_target_derived_columns(self):
-        from src.model_comparison import WIND, TARGET_DERIVED
-        self.assertNotIn("D: spatial, category and wind", make_comparison_models())
-        models = make_comparison_models(include_wind=True)
-        features, model = models["D: spatial, category and wind"]
-        self.assertTrue(set(WIND) <= set(features))
-        self.assertFalse(TARGET_DERIVED.intersection(features))
-        train = pd.DataFrame({feature: [1., 2., 3., 4.] for feature in SPATIAL})
-        train["tailwind_ms"], train["crosswind_ms"] = [0., np.nan, 10., -5.], [1., 2., np.nan, 0.]
-        train["aircraft_category"] = "Kurzstrecke"
-        model.fit(train[features], [10., 20., 30., 40.])
-        self.assertTrue(np.isfinite(model.predict(train[features])).all())
-
-    def test_comparison_refuses_pilot_data(self):
-        with self.assertRaisesRegex(RuntimeError, "seven observed"):
-            compare_models(pd.DataFrame({"date_utc": ["2026-10-01"]}),
-                           pd.DataFrame({"date_utc": ["2026-10-01"]}), "pilot")
 
 
 if __name__ == "__main__":

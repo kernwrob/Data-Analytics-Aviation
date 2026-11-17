@@ -77,7 +77,7 @@ So verwenden: in VS Code Claude Code öffnen, den Auftrag als Prompt einfügen. 
 
 Die Notebooks verweigern Modelle bei weniger als 7 Sammeltagen. Bis dahin Notebook-Änderungen nur so weit testen, wie es mit dem Pilot geht, und die Sperre **nicht** entfernen.
 
-### CC-1 · Wind und Kategorie in die Modellkette (Notebook 02) — passt zu #18
+### CC-1 · Wind und Kategorie in die Modellkette (Notebook 02) — passt zu #18 · ✅ mit CC-9 erledigt 17.11. (Wind-Join per SQL in Notebook 02, Modell D, RMSE-Grafik pro Modell × Zone × Split)
 
 > Lies `docs/ROADMAP_5.5.md` (Abschnitt CC-1), `docs/WEATHER.md` und `src/model_comparison.py`. Erweitere die letzte Code-Zelle von `notebooks/02_models.ipynb`: Lade zusätzlich `SELECT icao24, time_position, tailwind_ms, crosswind_ms FROM observation_wind` (nur wenn die Tabelle existiert) und hänge die Spalten mit einem `one_to_one`-Merge auf `(icao24, time_position)` an dieselben Train/Test-Frames wie die Kategorie, mit denselben Zeilen-Asserts. `compare_models` erkennt die Windspalten selbst und rechnet dann Modell D. Ergänze eine Markdown-Zelle, die A→B→C→D als Frage formuliert: «Wie viel erklären Raum, Flugzeugtyp und Wind jeweils zusätzlich?» Füge eine Grafik hinzu: RMSE pro Modell und Zone (near/far) für beide Splits. Verwende **nie** `airspeed_est_ms` als Feature. Teste die Zelle mit einem kleinen synthetischen Datensatz über 8 Tage in einem neuen Unit-Test, nicht mit echten Daten.
 
@@ -105,11 +105,11 @@ Die Notebooks verweigern Modelle bei weniger als 7 Sammeltagen. Bis dahin Notebo
 
 > Ausführlicher Auftrag: `Prompt/Claude_Code_Prompt_CC-7_Kategorie.md` (ausserhalb des Repos). Kurz: aktuelle OpenSky-Metadaten laden und als neue gepinnte Version dokumentieren; eigene Tabelle `data/reference/typecode_category.csv` mit den Kategorien Kurzstrecke, Regionaljet, Langstrecke, Turboprop, Business-Jet, Sonstige, Unbekannt; Reihenfolge Typecode → ICAO-Beschreibung → Unbekannt; ADS-B-Kategorie nur als Kreuzcheck; nicht gemappte Typecodes mit Anzahl; in `prepare.py` Snapshots mit altem Kartenausschnitt ausschliessen und im Audit zählen. Schema vor dem Blick auf Resultate in `DECISIONS.md` einfrieren.
 
-### CC-8 · Forschungsfrage direkt testen: OLS mit Interaktionen — passt zu #19
+### CC-8 · Forschungsfrage direkt testen: OLS mit Interaktionen — passt zu #19 · ✅ erledigt 17.11. (Code und Tests; Auswertung nach dem 26.11.)
 
 > In Notebook 03 (oder 02) eine OLS-Regression mit `statsmodels`: `velocity ~ altitude_km + I(altitude_km**2) + C(zone) * altitude_km + C(airport)` mit cluster-robusten Standardfehlern nach `icao24` (`cov_type="cluster"`). Der Koeffizient `altitude_km:C(zone)[T.near]` mit p-Wert beantwortet Teilfrage 1. Zweite Variante mit `C(airport) * altitude_km` für ZRH vs. GVA vs. BSL, dritte mit `C(aircraft_category) * altitude_km`. Koeffiziententabelle und Steigung pro Zone mit 95-%-Konfidenzintervall, in m/s und km/h. `statsmodels` in `requirements.txt` und Lockfile. Test auf synthetischen Daten mit bekannter Interaktion.
 
-### CC-9 · Modellform, Koeffizienten, Leakage-Demo, Fehlergrafik — passt zu #18
+### CC-9 · Modellform, Koeffizienten, Leakage-Demo, Fehlergrafik — passt zu #18 · ✅ erledigt 17.11. (Code und Tests; Auswertung nach dem 26.11.)
 
 > In `src/model_comparison.py` und Notebook 02: Modell A nicht-linear (Polynom 2. Grades oder `SplineTransformer`), `latitude`/`longitude` nicht als lineare Features (höchstens im Random Forest). Koeffiziententabelle der linearen Modelle (standardisiert und in Originaleinheiten). Leakage-Demo: dieselben Features einmal mit zufälligem Split (`random_state=42`), klar als «Demonstration, nicht Ergebnis» bezeichnet, gegen Split nach Tag und nach Flugzeug. Ergebnisgrafik: RMSE nach Modell (0, A–D) × Zone × Split, optional Bootstrap-Konfidenzintervall nach Flugzeug. R² nicht zwischen near und far vergleichen. Die 7-Tage-Sperre bleibt.
 
