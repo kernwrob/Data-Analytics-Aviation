@@ -1,6 +1,8 @@
 # Main collection on a travelling laptop
 
-The technical pilot passed and was stopped on 1 October at 15:56:57 Europe/Zurich. The original pilot task is disabled and preserved. Main collection has **not** been started: choose the start date, duration and owner first.
+**Status 12 November 2026: the main collection is running** on the old MacBook Pro at Matteo's home (`scripts/collection_mac.sh`), every 5 minutes from 12.11. 19:30 to 26.11. 19:30 Europe/Zurich. The bounding box was enlarged on the first evening to 45.6–48.2 °N, 5.2–10.6 °E. Details and reasons: `DECISIONS.md` («Main collection» and «Bounding box enlarged»). The Windows collector stays off.
+
+The technical pilot passed and was stopped on 1 October at 15:56:57 Europe/Zurich. The original pilot task is disabled and preserved.
 
 **Change on 22 October 2026 (ADS-B category):** snapshot requests now send `extended=1`, so OpenSky returns 18 instead of 17 fields per state vector; field 18 is the ADS-B emitter `category`. Each successful manifest entry logs `category_present`, the share of vectors with 18 fields. Raw responses are still saved unchanged and nothing is filtered during collection; `prepare.py` reads old 17-field pilot files with an empty `category`. A first manual check returned 167 vectors, all with 18 fields, but 162 reported category 0 (no information), so the ADS-B category serves as a cross-check, not as the aircraft category itself. **Before Start (or Resume), the collection laptop must run `git switch main` and `git pull origin main`**; the scheduled task calls `src/collect.py` from this folder, and no new packages are needed.
 
@@ -77,3 +79,32 @@ There is always **one** live `data/raw` folder and **one** active collector. The
 4. Note the handover (time, from → to) in `docs/DECISIONS.md` or the group chat. The gap between pause and resume is missing data, not zero traffic, and is visible in the manifest and control log.
 
 Never resume on the second computer before the first one is paused.
+
+## Current main collection (from 12 November 2026)
+
+| Item | Value |
+|---|---|
+| Device | Old MacBook Pro (A1502), macOS Monterey 12.7.6, user `Sammler`, automatic login, FileVault off, no system sleep on power (`pmset -c sleep 0`), display off after 10 min |
+| Repository on the collector | `~/Developer/Data-Analytics-Aviation`, branch `matteo/Data-Analytics-Aviation` (same collector code as `main`) |
+| Window | 12.11.2026 19:30 → 26.11.2026 19:30 Europe/Zurich, every 5 minutes, anonymous, `extended=1` |
+| Bounding box | 45.6–48.2 °N, 5.2–10.6 °E from the switch on 12.11. (before: 45.7–48.0 °N, 5.8–10.6 °E) |
+| Expected volume | 288 snapshots per day, about 4,000 in total |
+| Monitoring | Matteo, daily |
+
+Daily check from another Mac in the same home network (the collector has *Remote Login* enabled for the user `Sammler`; the `.local` name does not resolve in this network, so use the IP address and update it if the router assigns a new one):
+
+```bash
+ssh sammler@192.168.0.59 "cd ~/Developer/Data-Analytics-Aviation && scripts/collection_mac.sh status"
+```
+
+Good: `ENABLED`, the last manifest entry is a `snapshot` with `success` and at most 5–10 minutes old (times are UTC). Several `failure` entries in a row: send the last lines of `data/raw/manifest.jsonl` and `data/raw/logs/collector_mac.log` to the group.
+
+Changing the collector code or `config.json` during the collection always follows the same order, so there is never a second collector and the deadline stays the same:
+
+```bash
+cd ~/Developer/Data-Analytics-Aviation
+scripts/collection_mac.sh pause
+git pull --ff-only
+scripts/collection_mac.sh resume
+scripts/collection_mac.sh status
+```

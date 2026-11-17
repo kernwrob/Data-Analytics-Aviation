@@ -231,3 +231,25 @@ Nach jedem Block steht ein Interpretations-Platzhalter mit Leitfragen für die G
 **Wie getestet:** Notebook auf dem Pilot-Snapshot ausgeführt, die Grafik ist unverändert, weil alle Bänder genug Flugzeuge haben. Zusätzlich auf einer Kopie, in der das Band 3000–5000 m nur noch 4 Flugzeuge hat: Die Linie bricht dort ab. Unit-Tests 39/39 grün.
 
 **Auswirkung auf Daten/Ergebnisse:** Nur die Darstellung, keine Daten.
+
+---
+
+## Hauptsammlung gestartet und Kartenausschnitt vergrössert
+
+**Datum · Branch · PR-Link:** 2026-11-12 · `matteo/Data-Analytics-Aviation` · –
+
+**Was wurde geändert:**
+- Hauptsammlung auf dem alten MacBook gestartet: 12.11. 19:30 bis 26.11. 19:30, alle 5 Minuten (Issue #47, #32).
+- Kartenausschnitt in `config.json` von 45.7–48.0 °N / 5.8–10.6 °E auf **45.6–48.2 °N / 5.2–10.6 °E** vergrössert.
+- Doku nachgeführt: `DECISIONS.md` (Sammlung und Ausschnitt, Zeile «Collection owner and dates» nicht mehr *Pending*), `COLLECTION.md` (aktueller Stand, Fernzugriff, Ablauf bei Änderungen), `SETUP_MACBOOK.md` (Stand, Fernzugriff, Bildschirm aus).
+
+**Warum:** Genf lag nur 24 km vom Westrand entfernt, Basel 46 km vom Nordrand. Vom Ring 30–60 km um Genf lagen nur 68 % im Ausschnitt, bei Basel 91 %. An- und Abflüge über Frankreich fehlten, der Flughafenvergleich wäre schief gewesen. Jetzt liegen alle drei Flughäfen mindestens 68 km vom Rand entfernt. Der Ausschnitt bleibt unter 25 Quadratgrad und kostet weiterhin 1 Credit pro Abruf.
+
+**Geänderte Dateien und Funktionen:** `config.json` (`bbox`), `docs/DECISIONS.md`, `docs/COLLECTION.md`, `docs/SETUP_MACBOOK.md`, `docs/AI_USAGE_LOG.csv`, dieses Protokoll. Kein Code geändert.
+
+**Wie getestet:** Abstände und Anteile pro Zone mit Haversine-Distanz und Stichprobe berechnet (alter und neuer Ausschnitt). Credit-Regel in der OpenSky-REST-Doku nachgelesen. Unit-Tests verwenden eigene Test-Konfigurationen und sind nicht betroffen. Nach dem Wechsel auf dem Sammel-Mac: erster Snapshot mit `"lomin": 5.2` im Manifest und `success` prüfen.
+
+**Auswirkung auf Daten/Ergebnisse:** Ab dem Wechsel mehr Beobachtungen, vor allem westlich von Genf und nördlich von Basel. Die Snapshots mit altem Ausschnitt (ca. 1–2 h am 12.11.) werden in der Hauptanalyse ausgeschlossen, damit alle denselben Raum abdecken. Der Filter in `prepare.py` ist noch offen (eigenes Issue). Das Wind-Raster wird automatisch grösser.
+
+**Offene Fragen an die Gruppe:** Entscheid zur Kenntnis nehmen. Einverstanden, dass die ersten 1–2 Stunden mit altem Ausschnitt nicht in die Hauptanalyse kommen?
+

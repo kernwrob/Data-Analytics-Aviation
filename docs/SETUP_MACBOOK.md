@@ -6,6 +6,8 @@ Ziel: Das MacBook sammelt 14 Tage lang alle 5 Minuten einen OpenSky-Snapshot. Es
 
 Dauer: ca. 30–45 Minuten (das meiste ist Warten auf Downloads).
 
+> **Stand 12.11.2026: eingerichtet und in Betrieb.** macOS wurde über Internet-Recovery nicht installiert (Fehler -2003F), das MacBook läuft jetzt mit **macOS Monterey 12.7.6** (höchste Version für A1502). Das Repo ist inzwischen **öffentlich**, Schritt 2 (Token) ist deshalb nicht nötig. Die Sammlung läuft seit 12.11. 19:30, siehe `COLLECTION.md` und `DECISIONS.md`.
+
 ---
 
 ## Schritt 1 – Grundeinrichtung abschliessen
@@ -92,3 +94,17 @@ Danach MacBook aufgeklappt und am Strom stehen lassen. Bildschirm sperren geht m
 ## Schritt 8 – Nach den 14 Tagen
 
 Die Sammlung hört von selbst auf. Danach erstellst du den Daten-Export für die Gruppe (dafür braucht es die volle Python-Umgebung, das machen wir zusammen). Den GitHub-Token danach auf GitHub löschen.
+
+## Fernzugriff vom eigenen Mac (im gleichen WLAN)
+
+Auf dem Sammel-Mac unter Systemeinstellungen → Freigaben **Bildschirmfreigabe** und **Entfernte Anmeldung** einschalten, jeweils nur für den Benutzer `Sammler`.
+
+- Status: `ssh sammler@192.168.0.59 "cd ~/Developer/Data-Analytics-Aviation && scripts/collection_mac.sh status"`
+- Terminal auf dem Sammel-Mac: `ssh sammler@192.168.0.59` (beenden mit `exit`)
+- Bildschirm: Finder → Cmd + K → `vnc://192.168.0.59`. Danach nur das Fenster schliessen, **nicht abmelden**.
+
+Der Name `matteos-mbp.local` funktioniert in diesem Netz nicht, deshalb die IP-Adresse. Ändert sie sich, auf dem Sammel-Mac `ipconfig getifaddr en0` ausführen. Eine feste IP im Router (DHCP-Reservierung) verhindert das.
+
+## Bildschirm aus, Sammlung läuft weiter
+
+`pmset displaysleepnow` schaltet den Bildschirm sofort aus. Der Ruhezustand bleibt dank `sleep 0` aus. **Nicht zuklappen**: Zugeklappt schläft das MacBook ein.
