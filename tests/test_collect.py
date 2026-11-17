@@ -13,6 +13,7 @@ from unittest.mock import Mock, patch
 
 import pandas as pd
 import requests
+from tests.cleaning_config import with_cleaning
 from src import collect, prepare
 
 # 17-field vector as before extended=1; the 18-field variant appends ADS-B category 6 (heavy).
@@ -178,8 +179,8 @@ class StateFieldTests(unittest.TestCase):
         self.assertTrue(raw.category.isna().all())
 
     def test_raw_altitude_vertical_rate_and_category_reach_observations(self):
-        config = {"airport_idents": ["TEST"], "max_age_seconds": 60, "near_km": 30, "far_km": 60,
-                      "require_current_bbox": False}
+        config = with_cleaning({"airport_idents": ["TEST"], "max_age_seconds": 60, "near_km": 30,
+                                "far_km": 60, "require_current_bbox": False})
         (self.root / "config.json").write_text(json.dumps(config))
         pd.DataFrame({"ident": ["TEST"], "name": ["Test airport"], "latitude_deg": [47.],
                       "longitude_deg": [8.], "elevation_ft": [100.]}).to_csv(self.root / "data/raw/airports/fixture.csv", index=False)

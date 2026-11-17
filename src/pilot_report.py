@@ -104,13 +104,13 @@ def main():
                 lines += [f"Preparation could not retain observations: {exc}", ""]
             else:
                 summary = data.groupby("zone").agg(observations=("icao24", "size"), aircraft=("icao24", "nunique"),
-                    altitude_min_m=("geo_altitude", "min"), altitude_median_m=("geo_altitude", "median"),
-                    altitude_max_m=("geo_altitude", "max"), speed_median_m_s=("velocity", "median"))
+                    altitude_min_m=("altitude_m", "min"), altitude_median_m=("altitude_m", "median"),
+                    altitude_max_m=("altitude_m", "max"), speed_median_m_s=("velocity", "median"))
                 summary = summary.reindex(["near", "middle", "far"])
                 summary[["observations", "aircraft"]] = summary[["observations", "aircraft"]].fillna(0).astype(int)
                 summary.to_csv(folder / "zone_summary.csv")
                 # Fixed 1000 m descriptive bins show how much overlap is actually sampled.
-                data["altitude_band_lower_m"] = np.floor(data.geo_altitude / 1000) * 1000
+                data["altitude_band_lower_m"] = np.floor(data.altitude_m / 1000) * 1000
                 bands = data.groupby(["altitude_band_lower_m", "zone"]).agg(
                     observations=("icao24", "size"), aircraft=("icao24", "nunique"))
                 bands.to_csv(folder / "altitude_band_coverage.csv")

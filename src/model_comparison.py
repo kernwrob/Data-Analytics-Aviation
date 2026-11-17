@@ -16,8 +16,8 @@ try:
 except ImportError:
     from aircraft_metadata import UNKNOWN
 
-ALTITUDE = ["geo_altitude"]
-SPATIAL = ["geo_altitude", "distance_km", "latitude", "longitude", "near_indicator", "altitude_x_near"]
+ALTITUDE = ["altitude_m"]
+SPATIAL = ["altitude_m", "distance_km", "latitude", "longitude", "near_indicator", "altitude_x_near"]
 WIND = ["tailwind_ms", "crosswind_ms"]
 TARGET_DERIVED = {"velocity", "speed_kmh", "airspeed_est_ms", "icao24"}
 assert not TARGET_DERIVED.intersection(SPATIAL + WIND)

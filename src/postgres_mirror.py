@@ -34,19 +34,24 @@ INTEGER_TYPES = {BIGINT, INTEGER, SMALLINT}
 # Load order: referenced tables before the tables that point to them.
 TABLES = {
     "airports": {
-        "columns": {"ident": TEXT, "name": TEXT, "latitude_deg": DOUBLE, "longitude_deg": DOUBLE,
+        "columns": {"ident": TEXT, "name": TEXT, "iata_code": TEXT, "latitude_deg": DOUBLE, "longitude_deg": DOUBLE,
                     "elevation_ft": DOUBLE},
         "primary_key": ["ident"], "foreign_keys": [], "required": True},
+    "neighbour_airports": {
+        "columns": {"ident": TEXT, "name": TEXT, "iata_code": TEXT, "latitude_deg": DOUBLE, "longitude_deg": DOUBLE,
+                    "elevation_ft": DOUBLE},
+        "primary_key": ["ident"], "foreign_keys": [], "required": False},
     "observations": {
         "columns": {"icao24": TEXT, "callsign": TEXT, "origin_country": TEXT, "time_position": BIGINT,
                     "last_contact": BIGINT, "longitude": DOUBLE, "latitude": DOUBLE, "baro_altitude": DOUBLE,
                     "on_ground": SMALLINT, "velocity": DOUBLE, "true_track": DOUBLE, "vertical_rate": DOUBLE,
                     "geo_altitude": DOUBLE, "squawk": TEXT, "spi": SMALLINT, "position_source": SMALLINT,
                     "category": SMALLINT, "snapshot_time": BIGINT, "position_age_s": INTEGER,
-                    "contact_age_s": INTEGER, "airport_ident": TEXT, "distance_km": DOUBLE, "name": TEXT,
-                    "latitude_deg": DOUBLE, "longitude_deg": DOUBLE, "elevation_ft": DOUBLE, "zone": TEXT,
-                    "observed_at_utc": TIMESTAMPTZ, "date_utc": DATE, "hour_local": SMALLINT,
-                    "weekday_local": SMALLINT, "speed_kmh": DOUBLE},
+                    "contact_age_s": INTEGER, "altitude_m": DOUBLE, "altitude_source": TEXT, "airport_ident": TEXT, "distance_km": DOUBLE,
+                    "name": TEXT, "latitude_deg": DOUBLE, "longitude_deg": DOUBLE, "elevation_ft": DOUBLE,
+                    "airport": TEXT, "zone": TEXT, "flight_phase": TEXT, "observed_at_utc": TIMESTAMPTZ,
+                    "date_utc": DATE, "hour_local": SMALLINT, "weekday_local": SMALLINT, "speed_kmh": DOUBLE,
+                    "neighbour_ident": TEXT, "neighbour_distance_km": DOUBLE, "neighbour_buffer": SMALLINT},
         "primary_key": ["icao24", "time_position"],
         "foreign_keys": [(["airport_ident"], "airports", ["ident"])], "required": True},
     "aircraft_metadata": {
@@ -72,7 +77,11 @@ TABLES = {
         "foreign_keys": [(["icao24", "time_position"], "observations", ["icao24", "time_position"])],
         "required": False},
     "integration_audit": {
-        "columns": {"stage": TEXT, "rows": INTEGER, "unmatched": DOUBLE, "gained": DOUBLE, "lost": DOUBLE},
+        "columns": {"stage": TEXT, "rows": INTEGER, "lost": DOUBLE, "unmatched": DOUBLE, "gained": DOUBLE},
+        "primary_key": [], "foreign_keys": [], "required": False},
+    "missing_fields_audit": {
+        "columns": {"column_name": TEXT, "missing_all_rows": INTEGER, "missing_airborne_rows": INTEGER,
+                    "rows_all": INTEGER, "rows_airborne": INTEGER},
         "primary_key": [], "foreign_keys": [], "required": False},
     "snapshot_bbox_audit": {
         "columns": {"require_current_bbox": SMALLINT, "snapshots_total": INTEGER, "rows_total": INTEGER,
