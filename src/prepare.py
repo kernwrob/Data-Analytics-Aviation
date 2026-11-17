@@ -22,6 +22,11 @@ FIELDS = ["icao24", "callsign", "origin_country", "time_position", "last_contact
           "true_track", "vertical_rate", "sensors", "geo_altitude", "squawk",
           "spi", "position_source", "category"]
 BBOX_KEYS = ("lamin", "lamax", "lomin", "lomax")
+PLAUSIBILITY_KEYS = ("altitude_min_m", "altitude_max_m", "velocity_min_ms", "velocity_max_ms",
+                     "vertical_rate_abs_max_ms")
+NEIGHBOUR_MODES = ("exclude", "own_zone")
+FLIGHT_PHASES = ["climb", "level", "descent", "unknown"]
+AIRPORT_COLUMNS = ["ident", "name", "iata_code", "latitude_deg", "longitude_deg", "elevation_ft"]
 # ADS-B emitter category (OpenSky state vector field 18); a cross-check only, never the aircraft category.
 ADSB_LABELS = {0: "No information", 1: "No ADS-B emitter category", 2: "Light (< 15500 lbs)",
                3: "Small (15500-75000 lbs)", 4: "Large (75000-300000 lbs)", 5: "High vortex large",
@@ -108,45 +113,131 @@ def read_states(paths):
     return frame
 
 
+def cleaning_settings(config):
+    """Thresholds of the CC-10 cleaning stages; all must be set in config.json (no silent defaults)."""
+    missing = [key for key in ("plausibility", "flight_phase_threshold_ms", "neighbour_airports") if key not in config]
+    plausibility = config.get("plausibility", {})
+    missing += [f"plausibility.{key}" for key in PLAUSIBILITY_KEYS if key not in plausibility]
+    neighbours = config.get("neighbour_airports", {})
+    missing += [f"neighbour_airports.{key}" for key in ("idents", "radius_km", "mode") if key not in neighbours]
+    if missing:
+        raise ValueError(f"config.json lacks the cleaning settings {missing} (see docs/DECISIONS.md, CC-10).")
+    if neighbours["mode"] not in NEIGHBOUR_MODES:
+        raise ValueError(f"neighbour_airports.mode must be one of {NEIGHBOUR_MODES}, not {neighbours['mode']!r}.")
+    return plausibility, float(config["flight_phase_threshold_ms"]), neighbours
+
+
+def add_altitude(frame):
+    """altitude_m = geo_altitude, else baro_altitude; altitude_source says which (empty when both are missing)."""
+    geo = pd.to_numeric(frame.geo_altitude, errors="coerce")
+    baro = pd.to_numeric(frame.baro_altitude, errors="coerce")
+    frame["altitude_m"] = geo.where(geo.notna(), baro)
+    frame["altitude_source"] = pd.Series(np.select([geo.notna(), baro.notna()], ["geo", "baro"], default=""),
+                                         index=frame.index).replace("", None)
+    return frame
+
+
+def flight_phase(vertical_rate, threshold):
+    """climb above +threshold, descent below -threshold, level in between (inclusive); unknown without a rate."""
+    rate = pd.to_numeric(vertical_rate, errors="coerce")
+    phase = np.select([rate.gt(threshold), rate.lt(-threshold), rate.notna()], ["climb", "descent", "level"],
+                      default="unknown")
+    return pd.Series(phase, index=rate.index)
+
+
+def missing_fields_audit(raw):
+    """Missing values per column before any filter: all raw rows and only rows reported airborne."""
+    frame = add_altitude(raw.copy())
+    airborne = frame.loc[frame.on_ground.eq(False)]
+    audit = pd.DataFrame({"missing_all_rows": frame.isna().sum(), "missing_airborne_rows": airborne.isna().sum()})
+    audit["rows_all"], audit["rows_airborne"] = len(frame), len(airborne)
+    return audit.rename_axis("column_name").reset_index()
+
+
+def select_airports(airport_raw, idents, label):
+    """Rows of the pinned OurAirports file for the given idents; refuses missing, duplicate or coordinate-less ones."""
+    airports = airport_raw.loc[airport_raw.ident.isin(idents)].reindex(columns=AIRPORT_COLUMNS).copy()
+    if set(airports.ident) != set(idents) or airports.ident.duplicated().any():
+        raise ValueError(f"Missing or duplicate {label} airport identifiers: "
+                         f"{sorted(set(idents) - set(airports.ident))}.")
+    if airports[["latitude_deg", "longitude_deg"]].isna().any().any():
+        raise ValueError(f"{label.capitalize()} airport coordinates are missing.")
+    return airports.reset_index(drop=True)
+
+
+def select_neighbour_airports(airport_raw, config):
+    idents = config["neighbour_airports"]["idents"]
+    if not idents:
+        return pd.DataFrame(columns=AIRPORT_COLUMNS)
+    return select_airports(airport_raw, idents, "neighbour")
+
+
+def nearest_airport(data, airports):
+    """Ident and great-circle distance (km) of the nearest airport in `airports` for every row."""
+    distances = np.column_stack([haversine(data.latitude.to_numpy(), data.longitude.to_numpy(),
+                                           a.latitude_deg, a.longitude_deg) for a in airports.itertuples()])
+    nearest = distances.argmin(axis=1)
+    return airports.ident.to_numpy()[nearest], distances[np.arange(len(data)), nearest]
+
+
 def clean_and_join(raw, airport_raw, config):
-    audit = [{"stage": "raw", "rows": len(raw)}]
-    required = ["icao24", "time_position", "last_contact", "latitude", "longitude", "velocity", "geo_altitude"]
-    missing = raw.isna().sum().rename("missing").to_frame()
-    data = raw.dropna(subset=required).copy()
+    """Sequential cleaning with one audit row per stage (rows after it and rows it removed), then the airport join.
+
+    Order (CC-10): airborne -> required fields (altitude from geo, else baro) -> fresh and valid position ->
+    plausibility (altitude, speed, vertical rate) -> de-duplication -> nearest of the three main airports ->
+    buffer around neighbouring airports. Returns (observations, airports, audit, missing_fields_audit).
+    """
+    plausibility, phase_threshold, neighbours = cleaning_settings(config)
+    audit = [{"stage": "raw", "rows": len(raw), "lost": 0}]
+
+    def record(stage, frame):
+        audit.append({"stage": stage, "rows": len(frame), "lost": audit[-1]["rows"] - len(frame)})
+
+    missing = missing_fields_audit(raw)
+    data = raw.loc[raw.on_ground.eq(False)].copy()
+    record("airborne", data)
+    data = add_altitude(data)
+    for column in ("velocity", "vertical_rate"):
+        data[column] = pd.to_numeric(data[column], errors="coerce")
+    required = ["icao24", "time_position", "last_contact", "latitude", "longitude", "velocity", "altitude_m"]
+    data = data.dropna(subset=required).copy()
     data["icao24"] = normalize_icao24(data.icao24)
-    audit.append({"stage": "required_fields_present", "rows": len(data)})
-    data = data.loc[data.on_ground.eq(False)].copy()
-    audit.append({"stage": "airborne", "rows": len(data)})
+    record("required_fields_present", data)
     data["position_age_s"] = data.snapshot_time - data.time_position
     data["contact_age_s"] = data.snapshot_time - data.last_contact
     data = data.loc[data.position_age_s.between(0, config["max_age_seconds"]) &
                     data.contact_age_s.between(0, config["max_age_seconds"]) &
-                    data.latitude.between(-90, 90) & data.longitude.between(-180, 180) &
-                    data.velocity.ge(0)].copy()
-    audit.append({"stage": "valid_and_fresh", "rows": len(data)})
+                    data.latitude.between(-90, 90) & data.longitude.between(-180, 180)].copy()
+    record("valid_and_fresh", data)
+    data = data.loc[data.altitude_m.between(plausibility["altitude_min_m"], plausibility["altitude_max_m"])].copy()
+    record("plausible_altitude", data)
+    data = data.loc[data.velocity.between(plausibility["velocity_min_ms"], plausibility["velocity_max_ms"])].copy()
+    record("plausible_speed", data)
+    # A missing vertical rate is kept (flight_phase = unknown); only reported extreme rates are removed.
+    data = data.loc[data.vertical_rate.isna() |
+                    data.vertical_rate.abs().le(plausibility["vertical_rate_abs_max_ms"])].copy()
+    record("plausible_vertical_rate", data)
     data = data.sort_values("snapshot_time").drop_duplicates(["icao24", "time_position"], keep="first").copy()
-    audit.append({"stage": "unique_aircraft_position_timestamp", "rows": len(data)})
-    airports = airport_raw.loc[airport_raw.ident.isin(config["airport_idents"]),
-                               ["ident", "name", "latitude_deg", "longitude_deg", "elevation_ft"]].copy()
-    if set(airports.ident) != set(config["airport_idents"]) or airports.ident.duplicated().any():
-        raise ValueError("Missing or duplicate selected airport identifiers.")
-    if airports[["latitude_deg", "longitude_deg"]].isna().any().any():
-        raise ValueError("Selected airport coordinates are missing.")
+    record("unique_aircraft_position_timestamp", data)
+    airports = select_airports(airport_raw, config["airport_idents"], "selected")
+    neighbour_airports = select_neighbour_airports(airport_raw, config)
+    if set(airports.ident) & set(neighbour_airports.ident):
+        raise ValueError("A main airport is also listed in neighbour_airports.")
     if data.empty:
         raise ValueError("All observations were excluded. Inspect coverage and filters.")
-    distances = np.column_stack([haversine(data.latitude.to_numpy(), data.longitude.to_numpy(), a.latitude_deg, a.longitude_deg)
-                                 for a in airports.itertuples()])
-    nearest = distances.argmin(axis=1)
-    data["airport_ident"] = airports.ident.to_numpy()[nearest]
-    data["distance_km"] = distances[np.arange(len(data)), nearest]
+    data["airport_ident"], data["distance_km"] = nearest_airport(data, airports)
     before = len(data)
     joined = data.merge(airports, left_on="airport_ident", right_on="ident", how="left",
                         validate="many_to_one", indicator=True)
     if len(joined) != before or not joined._merge.eq("both").all():
         raise AssertionError("Airport join changed row count or lost matches.")
+    # Short name (ZRH/GVA/BSL) from the IATA code of the pinned OurAirports file; the ICAO ident if it has none.
+    short = joined.pop("iata_code")
+    joined["airport"] = short.where(short.notna() & short.astype("string").str.strip().ne(""), joined.airport_ident)
     joined = joined.drop(columns=["_merge", "ident", "sensors"])
     joined["zone"] = np.select([joined.distance_km.le(config["near_km"]),
                                 joined.distance_km.ge(config["far_km"])], ["near", "far"], default="middle")
+    joined["flight_phase"] = flight_phase(joined.vertical_rate, phase_threshold)
     joined["observed_at_utc"] = pd.to_datetime(joined.time_position, unit="s", utc=True).astype(str)
     joined["date_utc"] = pd.to_datetime(joined.time_position, unit="s", utc=True).dt.strftime("%Y-%m-%d")
     local = pd.to_datetime(joined.time_position, unit="s", utc=True).dt.tz_convert("Europe/Zurich")
@@ -154,6 +245,21 @@ def clean_and_join(raw, airport_raw, config):
     joined["weekday_local"] = local.dt.dayofweek
     joined["speed_kmh"] = joined.velocity * 3.6
     audit.append({"stage": "airport_join", "rows": len(joined), "unmatched": 0, "gained": 0, "lost": 0})
+    # Buffer around neighbouring airports. The near zone of ZRH/GVA/BSL takes precedence (it is airport
+    # proximity already), so the frozen 30/60 km zones and the nearest-main-airport assignment never change.
+    if len(neighbour_airports):
+        joined["neighbour_ident"], joined["neighbour_distance_km"] = nearest_airport(joined, neighbour_airports)
+    else:
+        joined["neighbour_ident"], joined["neighbour_distance_km"] = None, np.nan
+    joined["neighbour_buffer"] = (joined.neighbour_distance_km.le(neighbours["radius_km"]) &
+                                  joined.zone.ne("near")).astype(int)
+    if neighbours["mode"] == "exclude":
+        joined = joined.loc[joined.neighbour_buffer.eq(0)].reset_index(drop=True)
+    else:
+        joined.loc[joined.neighbour_buffer.eq(1), "zone"] = "neighbour"
+    record("neighbour_airport_buffer", joined)
+    if joined.empty:
+        raise ValueError("All observations were excluded by the neighbour-airport buffer.")
     return joined, airports, pd.DataFrame(audit), missing
 
 
@@ -189,6 +295,7 @@ def main():
     raw = read_states(kept_paths)
     airport_raw = pd.read_csv(airport_paths[0])
     data, airports, audit, missing = clean_and_join(raw, airport_raw, config)
+    neighbour_airports = select_neighbour_airports(airport_raw, config)
     bbox_stages = pd.DataFrame([
         {"stage": "raw_all_snapshots", "rows": snapshot_audit["rows_total"]},
         {"stage": "current_bbox", "rows": snapshot_audit["rows_kept"],
@@ -217,6 +324,8 @@ def main():
         airports.to_sql("airports", db, if_exists="replace", index=False)
         data.to_sql("observations", db, if_exists="replace", index=False)
         audit.to_sql("integration_audit", db, if_exists="replace", index=False)
+        missing.to_sql("missing_fields_audit", db, if_exists="replace", index=False)
+        neighbour_airports.to_sql("neighbour_airports", db, if_exists="replace", index=False)
         snapshot_audit.to_sql("snapshot_bbox_audit", db, if_exists="replace", index=False)
         db.execute("CREATE UNIQUE INDEX observation_key ON observations(icao24,time_position)")
         db.execute("CREATE UNIQUE INDEX airport_key ON airports(ident)")
@@ -299,7 +408,8 @@ def main():
             FROM observations_enriched GROUP BY 1,2 ORDER BY aircraft DESC, observations DESC
         """, db)
     audit.to_csv(folder / "integration_audit.csv", index=False)
-    missing.to_csv(folder / "missing_raw.csv")
+    missing.to_csv(folder / "missing_raw.csv", index=False)
+    missing.to_csv(folder / "missing_fields_audit.csv", index=False)
     summary.to_csv(folder / "sql_summary.csv", index=False)
     metadata_audit.to_csv(folder / "metadata_integration_audit.csv", index=False)
     duplicate_audit.to_csv(folder / "metadata_duplicate_candidates.csv", index=False)
@@ -314,6 +424,7 @@ def main():
     unmapped.to_csv(tables / "unmapped_typecodes.csv", index=False)
     print(snapshot_audit.to_string(index=False))
     print(audit.to_string(index=False))
+    print(missing.loc[missing.missing_all_rows.gt(0)].to_string(index=False))
     print(summary.to_string(index=False))
     print(metadata_audit.T.to_string(header=False))
     print(category_audit.to_string(index=False))

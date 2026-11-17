@@ -41,6 +41,7 @@
 - [ ] `src/prepare.py` laufen lassen (SQLite und Audits neu)
 - [ ] Wind für alle Sammeltage holen: `python src/weather.py fetch --start 2026-11-12 --end 2026-11-26`
 - [ ] Notebook 01 auf allen 14 Tagen ausführen
+- [ ] Zahlen und Grafiken: `python src/presentation_figures.py` → `outputs/tables/presentation_numbers.csv` und `outputs/figures/presentation/`
 
 | # | Folie | Platzhalter | Was eintragen / tun | Quelle |
 |---|---|---|---|---|

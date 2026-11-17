@@ -317,3 +317,52 @@ Nach jedem Block steht ein Interpretations-Platzhalter mit Leitfragen für die G
 4. Die Liste der nicht gemappten Typecodes ist heute leer, weil alle beobachteten Typecodes eingetragen sind. Wer prüft sie während der Sammlung (z. B. nach 7 Tagen) und ergänzt neue Typecodes?
 5. Aufgefallen, nicht Teil dieses Auftrags: 75 von 203 Zeilen fallen in der Stufe `required_fields_present` weg, alle wegen fehlender `geo_altitude`. 74 davon sind Flugzeuge am Boden (`on_ground`), die in der Stufe `airborne` ohnehin wegfielen. Die Audit-Tabelle schreibt sie also der falschen Stufe zu. Für CC-10 (Höhe aus `baro_altitude`, Reihenfolge der Filter) vormerken.
 6. Aufgefallen: Der PostgreSQL-Mirror enthält jetzt alle 616'648 Metadaten-Zeilen (vorher 0 auf dem Mac). Er läuft trotzdem in Sekunden, sollte aber nur die Flugzeuge aus den Beobachtungen spiegeln, falls er auf Windows zu langsam wird.
+
+---
+
+## CC-10: Aufbereitung (Höhe, Plausibilität, Nachbarflughäfen, Flugphase) und Präsentationsgrafiken
+
+**Datum · Branch · PR-Link:** 2026-11-17 · `matteo/Data-Analytics-Aviation` · – (Issue #13, noch nicht gepusht)
+
+**Was wurde geändert:**
+- **Reihenfolge im Audit (NEU-3):** zuerst `on_ground == False`, danach die Pflichtfelder. Jede Stufe hat eine Zeile in `integration_audit`, `lost` ist jetzt für jede Stufe gefüllt und alle Stufen addieren sich von `raw` bis zum Ende.
+- **Neue Audit-Tabelle `missing_fields_audit`:** fehlende Werte pro Spalte, vor jedem Filter, einmal für alle Rohzeilen und einmal nur für Zeilen in der Luft.
+- **Höhe:** neue Spalten `altitude_m` (`geo_altitude`, sonst `baro_altitude`) und `altitude_source` (`geo`/`baro`). `altitude_m` ist Pflichtfeld, `geo_altitude` nicht mehr, bleibt aber als Spalte erhalten.
+- **Plausibilität** (Schwellen in `config.json`, Grenzen inklusive): Höhe −300 bis 15'500 m, Geschwindigkeit 0 bis 350 m/s, |Steigrate| ≤ 40 m/s. Fehlende Steigrate wird nicht gefiltert. Drei eigene Audit-Stufen.
+- **Puffer um Nachbarflughäfen:** 15 km um LIMC, LIME, EDNY, LSZB, LSZA, LSGS, LFLB, LFLP, LSZR, EDJA (Koordinaten aus der gepinnten OurAirports-Datei). Modus `exclude` (Standard) oder `own_zone` (`zone = "neighbour"`). Die nahe Zone von ZRH/GVA/BSL hat Vorrang. Neue Spalten `neighbour_ident`, `neighbour_distance_km`, `neighbour_buffer`, neue Tabelle `neighbour_airports`.
+- **Neue Spalten** `airport` (ZRH/GVA/BSL aus `iata_code`) und `flight_phase` (`climb`/`level`/`descent`, ±2.5 m/s; ohne Steigrate `unknown`).
+- **Downstream auf `altitude_m` umgestellt:** Modelle (`model_comparison.py`), Wind-Interpolation (`weather.py`), Pilot-Report, Notebooks 01–04, PostgreSQL-Mirror (neue Spalten und Tabellen). Die Views `observations_enriched` und `observations_with_wind` enthalten die neuen Spalten automatisch (`o.*`).
+- **Notebook 01:** Tabelle «ausgeschlossene Zeilen pro Grund» (vorher/verloren/nachher/Anteil), `missing_fields_audit`, Herkunft der Höhe, Flugphase pro Zone (Tabelle und Grafik), Interpretations-Platzhalter.
+- **Neues Skript `src/presentation_figures.py`:** schreibt `outputs/tables/presentation_numbers.csv` (19 Kennzahlen für B1–B15 mit Quelle und Platzhalter-Nummer), `altitude_speed_kmh.png` (Folie 8) und `title_map.png` (Titelfolie). Feste Stichprobe `random_state=42`, nur finaler Ausschnitt.
+- **Doku:** `DECISIONS.md` (Vorschläge mit Begründung), `WEATHER.md`, `ROADMAP_5.5.md` (CC-10 erledigt), `KONZEPT_OFFENE_PUNKTE.md` (eine Zeile in Teil B).
+
+**Warum:** Review 15.11., Punkte H2 (Flugphase), H4 (Nachbarflughäfen), M3 (Plausibilität) und NEU-3 (Audit-Reihenfolge). Ohne Plausibilitätsfilter und mit falsch zugeordneten Ausschlüssen ist Pflichtkriterium 2 («resolving inconsistencies») schwach belegt. Der Puffer verhindert, dass Starts und Landungen in Mailand, Bern oder Lugano als «Streckenflug» (fern) zählen. Die Präsentationszahlen sollen nach dem 26.11. mit einem einzigen Befehl entstehen.
+
+**Geänderte Dateien und Funktionen:**
+- `src/prepare.py`: `cleaning_settings`, `add_altitude`, `flight_phase`, `missing_fields_audit`, `select_airports`, `select_neighbour_airports`, `nearest_airport` (neu); `clean_and_join`, `main` (angepasst).
+- `src/presentation_figures.py` (neu): `load_database`, `coverage_gaps`, `presentation_numbers`, `altitude_speed_figure`, `circle`, `title_map_figure`, `main`.
+- `src/weather.py` (`vertical_wind`, `attach_wind`), `src/model_comparison.py` (`ALTITUDE`, `SPATIAL`), `src/pilot_report.py`, `src/postgres_mirror.py` (`TABLES`).
+- `config.json`: `plausibility`, `flight_phase_threshold_ms`, `neighbour_airports`.
+- Notebooks 01, 02, 03, 04.
+- Tests: `tests/test_cleaning.py` (neu, 14 Tests), `tests/test_presentation_figures.py` (neu, 4 Tests), `tests/cleaning_config.py` (gemeinsame Testwerte), Fixtures in 5 bestehenden Testdateien ergänzt.
+- Doku: `docs/DECISIONS.md`, `docs/WEATHER.md`, `docs/ROADMAP_5.5.md`, `presentation/KONZEPT_OFFENE_PUNKTE.md`, `docs/AI_USAGE_LOG.csv`, dieses Changelog.
+
+**Wie getestet:**
+- 71/71 Unit-Tests grün (vorher 53), alle offline mit kleinen Fixtures: Boden vor Pflichtfeldern, Höhe aus baro, jede Plausibilitätsgrenze knapp drin und knapp draussen, Puffer in beiden Modi inkl. Vorrang der nahen Zone, Flugphase inkl. ±2.5 und `unknown`, Audit-Summe, fehlende Config-Schlüssel, Präsentationsskript mit und ohne Wind, Lückenzählung, Kreisradius in km.
+- Gegenprobe: zwei absichtlich eingebaute Fehler (Vorrang der nahen Zone weg, Schwelle `>` statt `≥`) wurden von 5 Tests erkannt.
+- `prepare.py` auf den 13 lokalen Snapshots, PostgreSQL-Mirror neu gebaut (Zeilenzahlen stimmen), Notebooks 01 und 04 ausgeführt (Outputs nur im Scratchpad). Notebooks 02 und 03 stoppen an ihren bestehenden Sperren (zu wenige Sammeltage), dort wurden nur Spaltennamen ersetzt.
+- Beide Grafiken und die CSV angeschaut.
+
+**Auswirkung auf Daten/Ergebnisse (lokal, 2 Snapshots mit finalem Ausschnitt, 203 Rohzeilen):**
+- Vorher: Pflichtfelder −75, am Boden −0, Frische −6 → 122 Beobachtungen, 77 Flugzeuge.
+- Jetzt: am Boden −74, Pflichtfelder −1, Frische −6, Plausibilität Höhe/Speed/Steigrate je −0, Duplikate −0, Puffer −9 → **113 Beobachtungen, 72 Flugzeuge**.
+- Alle 113 Höhen stammen aus `geo_altitude`; der baro-Ersatz hat lokal keine Zeile zurückgeholt (unter den Flugzeugen in der Luft fehlte nur 1 Höhe, und bei dieser fehlte auch baro).
+- Flugphase: nah 41 % Steigen / 15 % Reiseflug / 44 % Sinken; fern 8 % / 75 % / 17 %.
+- Typ-Join 88.5 %, Kategorie «Unbekannt» 12.4 %.
+- Modelle: neu `altitude_m` statt `geo_altitude`, Ergebnisse gibt es erst ab 7 Sammeltagen.
+
+**Offene Fragen an die Gruppe:**
+1. Schwellen, Puffer-Radius 15 km, Modus `exclude` und Flugphase ±2.5 m/s bestätigen (`DECISIONS.md`, Status «Proposed 17.11.2026»).
+2. LSZR (St. Gallen-Altenrhein) und EDJA (Memmingen) zusätzlich zur Liste aus dem Review aufnehmen? Beide liegen im Ausschnitt und haben Linienverkehr.
+3. **Höhengrenze für den Puffer?** Der Puffer gilt heute in jeder Höhe. Lokal waren 4 der 9 entfernten Zeilen Überflüge in Reiseflughöhe (über Lugano 11'700 m, Bern 10'400 m). Vorschlag: nur Zeilen unter z. B. 3'000 m über dem Flughafen puffern, als weiterer Wert in `config.json`. Vor der Hauptanalyse entscheiden.
+4. Wind wird jetzt auch für Zeilen mit barometrischer Höhe interpoliert. Die kann einige 100 m von der geometrischen Höhe abweichen (in `WEATHER.md` dokumentiert). OK so?

@@ -8,6 +8,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 import pandas as pd
+from tests.cleaning_config import with_cleaning
 from src.aircraft_metadata import prepare_metadata, enrich_observations, UNKNOWN
 from src import prepare
 
@@ -60,8 +61,8 @@ class MetadataTests(unittest.TestCase):
             root = Path(directory)
             for folder in ("data/raw/opensky", "data/raw/airports"):
                 (root / folder).mkdir(parents=True)
-            config = {"airport_idents": ["TEST"], "max_age_seconds": 60, "near_km": 30, "far_km": 60,
-                      "require_current_bbox": False}
+            config = with_cleaning({"airport_idents": ["TEST"], "max_age_seconds": 60, "near_km": 30,
+                                    "far_km": 60, "require_current_bbox": False})
             (root / "config.json").write_text(json.dumps(config))
             state = ["ABCDEF", "TEST", "Example", 100, 100, 8., 47., 1000., False, 50., 90., 0., None, 1000., None, False, 0]
             (root / "data/raw/opensky/fixture.json").write_text(json.dumps({"time": 100, "states": [state]}))

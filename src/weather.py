@@ -8,8 +8,8 @@ so export_data.py freezes them like the other sources. src/prepare.py then attac
 observation with a row-preserving left join (table observation_wind, view observations_with_wind).
 
 Matching per observation: nearest full UTC hour, nearest grid point, and linear interpolation (u/v
-components) between the two pressure levels whose geopotential heights bracket the aircraft's geometric
-altitude. Above/below the level range the edge level is used and the vertical gap is stored. Wind is
+components) between the two pressure levels whose geopotential heights bracket the aircraft's altitude
+(`altitude_m`: geometric altitude, else barometric altitude, see src/prepare.py). Above/below the level range the edge level is used and the vertical gap is stored. Wind is
 modelled, not measured at the aircraft.
 """
 import argparse
@@ -177,13 +177,13 @@ def vertical_wind(candidates):
     c = candidates.copy()
     toward = np.radians(c.wind_dir_deg + 180.0)
     c["u"], c["v"] = c.wind_speed_ms * np.sin(toward), c.wind_speed_ms * np.cos(toward)
-    below = c[c.height_m <= c.geo_altitude]
-    above = c[c.height_m > c.geo_altitude]
+    below = c[c.height_m <= c.altitude_m]
+    above = c[c.height_m > c.altitude_m]
     below = below.loc[below.groupby("row").height_m.idxmax()].set_index("row")
     above = above.loc[above.groupby("row").height_m.idxmin()].set_index("row")
     rows = sorted(set(below.index) | set(above.index))
     out = c.drop_duplicates("row").set_index("row").loc[rows, ["time_utc", "grid_lat", "grid_lon",
-                                                               "geo_altitude", "velocity", "true_track"]].copy()
+                                                               "altitude_m", "velocity", "true_track"]].copy()
     both = below.index.intersection(above.index)
     only_below = below.index.difference(above.index)
     only_above = above.index.difference(below.index)
@@ -191,7 +191,7 @@ def vertical_wind(candidates):
         out[col] = np.nan
     out["gap"], out["interpolated"] = np.nan, 0
     b, a = below.loc[both], above.loc[both]
-    weight = (b.geo_altitude - b.height_m) / (a.height_m - b.height_m)
+    weight = (b.altitude_m - b.height_m) / (a.height_m - b.height_m)
     out.loc[both, "u"] = b.u + weight * (a.u - b.u)
     out.loc[both, "v"] = b.v + weight * (a.v - b.v)
     nearer_is_below = weight <= 0.5
@@ -201,7 +201,7 @@ def vertical_wind(candidates):
     for edge, idx in ((below, only_below), (above, only_above)):
         e = edge.loc[idx]
         out.loc[idx, ["u", "v", "level_hpa", "height_m"]] = e[["u", "v", "level_hpa", "height_m"]].to_numpy()
-        out.loc[idx, "gap"] = (e.height_m - e.geo_altitude).abs()
+        out.loc[idx, "gap"] = (e.height_m - e.altitude_m).abs()
     out["wind_speed_ms"] = np.hypot(out.u, out.v)
     out["wind_dir_deg"] = np.degrees(np.arctan2(-out.u, -out.v)) % 360.0
     out["level_hpa"] = out.level_hpa.astype(int)
@@ -212,7 +212,7 @@ def attach_wind(observations, weather):
     """Row-preserving left join of modelled wind onto observations, keyed by (icao24, time_position)."""
     import numpy as np
     import pandas as pd
-    obs = observations[["icao24", "time_position", "latitude", "longitude", "geo_altitude",
+    obs = observations[["icao24", "time_position", "latitude", "longitude", "altitude_m",
                         "velocity", "true_track"]].reset_index(drop=True).copy()
     audit = {"source_available": not weather.empty, "weather_rows": len(weather), "observations": len(obs)}
     result = obs[["icao24", "time_position"]].copy()

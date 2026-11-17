@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pandas as pd
+from tests.cleaning_config import with_cleaning
 from src import prepare
 from src.aircraft_metadata import (CATEGORIES, UNKNOWN, OTHER, description_category, load_typecode_categories,
                                    prepare_metadata, read_metadata_csv, TYPECODE_REFERENCE)
@@ -107,8 +108,9 @@ class PrepareFixture(unittest.TestCase):
             (self.root / "data/raw" / folder).mkdir(parents=True)
         pd.DataFrame({"ident": ["TEST"], "name": ["Test"], "latitude_deg": [47.], "longitude_deg": [8.],
                       "elevation_ft": [100.]}).to_csv(self.root / "data/raw/airports/a.csv", index=False)
-        self.config = {"bbox": NEW_BBOX, "airport_idents": ["TEST"], "max_age_seconds": 60, "near_km": 30,
-                       "far_km": 60, "require_current_bbox": True, "metadata_file": "", "metadata_sha256": ""}
+        self.config = with_cleaning({"bbox": NEW_BBOX, "airport_idents": ["TEST"], "max_age_seconds": 60,
+                                     "near_km": 30, "far_km": 60, "require_current_bbox": True,
+                                     "metadata_file": "", "metadata_sha256": ""})
 
     def snapshot(self, name, states, bbox=None, backslash=False):
         path = f"data/raw/opensky/{name}.json"

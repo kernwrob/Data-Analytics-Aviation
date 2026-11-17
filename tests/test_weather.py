@@ -12,6 +12,7 @@ from unittest.mock import Mock, patch
 
 import numpy as np
 import pandas as pd
+from tests.cleaning_config import with_cleaning
 from src import prepare, weather
 
 T0 = 1793527200  # 2026-11-01T10:00:00Z
@@ -62,7 +63,7 @@ class WindJoinTests(unittest.TestCase):
             "icao24": ["a", "b", "c", "d"],
             "time_position": [T0 + 600, T0 + 2400, T0, T0 + 86400],  # 10:10->10h, 10:40->11h, 10h, next day
             "latitude": [47.1, 47.0, 46.1, 47.0], "longitude": [8.1, 8.0, 6.4, 8.0],
-            "geo_altitude": [1200.0, 11000.0, 1600.0, 1500.0],
+            "altitude_m": [1200.0, 11000.0, 1600.0, 1500.0],
             "velocity": [100.0, 230.0, 120.0, 100.0], "true_track": [180.0, 90.0, np.nan, 0.0]}, index=[7, 3, 9, 1])
         result, audit = weather.attach_wind(obs, w)
         self.assertEqual(result.icao24.tolist(), ["a", "b", "c", "d"])
@@ -81,7 +82,7 @@ class WindJoinTests(unittest.TestCase):
     def test_vertical_interpolation_uses_components(self):
         # Halfway between 850 hPa (1500 m, 10 m/s from N) and 250 hPa (10400 m, 40 m/s from W).
         obs = pd.DataFrame({"icao24": ["m"], "time_position": [T0], "latitude": [47.0], "longitude": [8.0],
-                            "geo_altitude": [5950.0], "velocity": [200.0], "true_track": [90.0]})
+                            "altitude_m": [5950.0], "velocity": [200.0], "true_track": [90.0]})
         result, audit = weather.attach_wind(obs, weather.load_weather([self.path]))
         row = result.iloc[0]
         self.assertEqual(row.wind_interpolated, 1)
@@ -93,7 +94,7 @@ class WindJoinTests(unittest.TestCase):
 
     def test_no_weather_keeps_rows(self):
         obs = pd.DataFrame({"icao24": ["a"], "time_position": [T0], "latitude": [47.0], "longitude": [8.0],
-                            "geo_altitude": [1000.0], "velocity": [100.0], "true_track": [0.0]})
+                            "altitude_m": [1000.0], "velocity": [100.0], "true_track": [0.0]})
         result, audit = weather.attach_wind(obs, weather.load_weather([]))
         self.assertEqual(len(result), 1)
         self.assertEqual(result.wind_matched.tolist(), [0])
@@ -151,9 +152,9 @@ class PrepareIntegrationTests(unittest.TestCase):
             root = Path(tmp)
             for folder in ("opensky", "airports", "weather"):
                 (root / "data/raw" / folder).mkdir(parents=True)
-            (root / "config.json").write_text(json.dumps(
+            (root / "config.json").write_text(json.dumps(with_cleaning(
                 {"airport_idents": ["TEST"], "max_age_seconds": 60, "near_km": 30, "far_km": 60,
-                 "require_current_bbox": False}))
+                 "require_current_bbox": False})))
             pd.DataFrame({"ident": ["TEST"], "name": ["Test"], "latitude_deg": [47.], "longitude_deg": [8.],
                           "elevation_ft": [100.]}).to_csv(root / "data/raw/airports/a.csv", index=False)
             states = [["abcdef", "T1", "X", T0, T0, 8.0, 47.0, 1400., False, 100., 180., 0., None, 1500., None, False, 0, 3],

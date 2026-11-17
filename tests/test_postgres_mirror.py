@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
+from tests.cleaning_config import with_cleaning
 from src import postgres_mirror as mirror
 from src import prepare
 
@@ -25,9 +26,9 @@ def build_project_database(root, with_weather):
     """Run the real prepare.main on a two-aircraft fixture; optionally with one wind file."""
     for folder in ("opensky", "airports", "weather"):
         (root / "data/raw" / folder).mkdir(parents=True)
-    (root / "config.json").write_text(json.dumps(
+    (root / "config.json").write_text(json.dumps(with_cleaning(
         {"airport_idents": ["TEST"], "max_age_seconds": 60, "near_km": 30, "far_km": 60,
-         "require_current_bbox": False}))
+         "require_current_bbox": False})))
     pd.DataFrame({"ident": ["TEST"], "name": ["Test"], "latitude_deg": [47.], "longitude_deg": [8.],
                   "elevation_ft": [100.]}).to_csv(root / "data/raw/airports/a.csv", index=False)
     states = [["abcdef", "T1", "X", T0, T0, 8.0, 47.0, 1400., False, 100., 180., 0., None, 1500., None, False, 0, 3],
@@ -100,14 +101,14 @@ class SchemaTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "x.sqlite"
             with closing(sqlite3.connect(path)) as db, db:
-                db.execute("CREATE TABLE airports (ident TEXT, name TEXT, latitude_deg REAL, longitude_deg REAL, "
-                           "elevation_ft REAL, extra TEXT)")
+                db.execute("CREATE TABLE airports (ident TEXT, name TEXT, iata_code TEXT, latitude_deg REAL, "
+                           "longitude_deg REAL, elevation_ft REAL, extra TEXT)")
             with self.assertRaisesRegex(mirror.MirrorError, "extra"):
                 mirror.read_sqlite(path)
             with closing(sqlite3.connect(path)) as db, db:
                 db.execute("DROP TABLE airports")
-                db.execute("CREATE TABLE airports (ident TEXT, name TEXT, latitude_deg REAL, longitude_deg REAL, "
-                           "elevation_ft REAL)")
+                db.execute("CREATE TABLE airports (ident TEXT, name TEXT, iata_code TEXT, latitude_deg REAL, "
+                           "longitude_deg REAL, elevation_ft REAL)")
             with self.assertRaisesRegex(mirror.MirrorError, "observations"):
                 mirror.read_sqlite(path)
 

@@ -113,7 +113,7 @@ Die Notebooks verweigern Modelle bei weniger als 7 Sammeltagen. Bis dahin Notebo
 
 > In `src/model_comparison.py` und Notebook 02: Modell A nicht-linear (Polynom 2. Grades oder `SplineTransformer`), `latitude`/`longitude` nicht als lineare Features (höchstens im Random Forest). Koeffiziententabelle der linearen Modelle (standardisiert und in Originaleinheiten). Leakage-Demo: dieselben Features einmal mit zufälligem Split (`random_state=42`), klar als «Demonstration, nicht Ergebnis» bezeichnet, gegen Split nach Tag und nach Flugzeug. Ergebnisgrafik: RMSE nach Modell (0, A–D) × Zone × Split, optional Bootstrap-Konfidenzintervall nach Flugzeug. R² nicht zwischen near und far vergleichen. Die 7-Tage-Sperre bleibt.
 
-### CC-10 · Aufbereitung: Höhe, Plausibilität, weitere Flughäfen, Flugphase — passt zu #13
+### CC-10 · Aufbereitung: Höhe, Plausibilität, weitere Flughäfen, Flugphase — passt zu #13 · ✅ erledigt 17.11. (Schwellen und Puffer als Vorschlag in `DECISIONS.md`, Gruppe muss bestätigen)
 
 > In `src/prepare.py`, jede Stufe mit Zeile in `integration_audit`: `altitude_m` aus `geo_altitude`, sonst `baro_altitude`, plus `altitude_source`; Plausibilitätsfilter mit Schwellen in `config.json` (Höhe −300 bis 15'500 m, Speed 0–350 m/s, |vertical_rate| ≤ 40 m/s, fehlende Steigrate nicht filtern); Puffer um weitere Verkehrsflughäfen im Ausschnitt (mindestens LIMC, LIME, EDNY, LSZB, LSZA, LSGS, EDSB; Liste in `config.json`) mit Modus `exclude` oder `own_zone`, ohne die Zuordnung zu ZRH/GVA/BSL zu ändern; Spalte `airport` (ZRH/GVA/BSL); Spalte `flight_phase` (climb/level/descent, Schwelle ±2.5 m/s in `config.json`). EDA-Tabelle «ausgeschlossene Zeilen pro Grund». Tests für jede Stufe.
 
