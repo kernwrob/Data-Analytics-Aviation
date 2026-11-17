@@ -12,7 +12,7 @@ Stand: 12.11.2026
 
 | Punkt | Vorgabe |
 |---|---|
-| Termin | **Do, 19.11.2026**, vor Ort in Winterthur, zu Beginn der Vorlesung |
+| Termin | **Di, 15.12.2026**, vor Ort in Winterthur, zu Beginn der Vorlesung |
 | Abgabe Folien | **PDF auf Moodle bis Sa, 14.11.2026** |
 | Dauer | **10 Minuten**, frei gesprochen, alle drei sprechen (je ca. 3 Min.) |
 | Inhalt | Die Idee, **noch ohne Resultate**. Das Thema wird hier offiziell genehmigt. |
@@ -46,7 +46,7 @@ Wir sammeln selbst Flugdaten über der Schweiz, vergleichen Höhe und Geschwindi
 ### Folie 1 – Titel
 - **Titel (Vorschlag):** «Tief und langsam, hoch und schnell? Flughöhe und Geschwindigkeit über der Schweiz»
 - Untertitel: Data Analytics Leistungsnachweis, Konzeptpräsentation
-- **Volle Namen aller drei**, Gruppennummer, ZHAW SML, HS 26/27, Datum 19.11.2026
+- **Volle Namen aller drei**, Gruppennummer, ZHAW SML, HS 26/27, Datum 15.12.2026
 - Bild: Flugzeug im Anflug oder Karte der Schweiz mit Flugspuren (eigene Pilotkarte, Quelle angeben)
 
 ### Folie 2 – Agenda

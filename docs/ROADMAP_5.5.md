@@ -6,7 +6,7 @@ Stand: 11. November 2026, **aktualisiert am 12. November 2026** nach dem Projekt
 
 Schlussprojekt: **max. 22 Punkte** = 9 Pflicht + 6 Bonus + 7 Video. Wie Punkte in Noten umgerechnet werden, steht im Auszug nicht. Für eine 5.5–6 sollte das Ziel sein: **alle 9 Pflichtpunkte, mindestens 5 der 6 Bonuspunkte und 6–7 Punkte beim Video.** Jeder fehlende Pflichtpunkt kostet mehr als ein Bonuspunkt bringt.
 
-Die Konzeptpräsentation (19.11., 10 Min., 8 Kriterien) ist separat bewertet. Ob und wie stark sie in die Note eingeht, ist im Auszug nicht angegeben.
+Die Konzeptpräsentation (15.12., 10 Min., 8 Kriterien) ist separat bewertet. Ob und wie stark sie in die Note eingeht, ist im Auszug nicht angegeben.
 
 ## 2. Stand pro Kriterium
 
@@ -127,4 +127,4 @@ Die Notebooks verweigern Modelle bei weniger als 7 Sammeltagen. Bis dahin Notebo
 
 ## 6. Später, mit den Issues
 
-Nicht-Code-Arbeit, als Issues geplant: Sammlung überwachen und einfrieren (#4, #15), Daten teilen (#14), Wind für alle Sammeltage holen nach dem 26.11. (#22), Konzeptpräsentation am 19.11. (Kevin, #6–#9, #11), Fragen an Mario (#10), Interpretation (#23), Notebooks als Bericht (#48), Walkthrough (#49), KI-Reflexion (#26), Repo aufräumen (#51), Video und Moodle (#27–#29).
+Nicht-Code-Arbeit, als Issues geplant: Sammlung überwachen und einfrieren (#4, #15), Daten teilen (#14), Wind für alle Sammeltage holen nach dem 26.11. (#22), Konzeptpräsentation am 15.12. (Kevin, #6–#9, #11; offene Punkte und Platzhalter nach Sammelende: `presentation/KONZEPT_OFFENE_PUNKTE.md`), Fragen an Mario (#10), Interpretation (#23), Notebooks als Bericht (#48), Walkthrough (#49), KI-Reflexion (#26), Repo aufräumen (#51), Video und Moodle (#27–#29).
