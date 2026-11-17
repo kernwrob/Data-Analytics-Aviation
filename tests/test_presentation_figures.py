@@ -59,7 +59,7 @@ class PresentationFiguresTests(unittest.TestCase):
             {"start_utc": iso(T0), "end_utc": iso(T0 + 1200), "interval_seconds": 300, "days": 1}))
         if with_weather:
             first = pd.Timestamp(T0, unit="s").floor("h")
-            hours = [f"{first + pd.to_timedelta(h, unit="h"):%Y-%m-%dT%H:%M}" for h in (0, 1)]
+            hours = [f"{first + pd.to_timedelta(h, unit='h'):%Y-%m-%dT%H:%M}" for h in (0, 1)]
             hourly = {"time": hours, "wind_speed_850hPa": [10.0] * 2, "wind_direction_850hPa": [270.0] * 2,
                       "geopotential_height_850hPa": [1500.0] * 2, "wind_speed_250hPa": [40.0] * 2,
                       "wind_direction_250hPa": [270.0] * 2, "geopotential_height_250hPa": [10300.0] * 2}
