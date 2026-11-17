@@ -366,3 +366,57 @@ Nach jedem Block steht ein Interpretations-Platzhalter mit Leitfragen für die G
 2. LSZR (St. Gallen-Altenrhein) und EDJA (Memmingen) zusätzlich zur Liste aus dem Review aufnehmen? Beide liegen im Ausschnitt und haben Linienverkehr.
 3. **Höhengrenze für den Puffer?** Der Puffer gilt heute in jeder Höhe. Lokal waren 4 der 9 entfernten Zeilen Überflüge in Reiseflughöhe (über Lugano 11'700 m, Bern 10'400 m). Vorschlag: nur Zeilen unter z. B. 3'000 m über dem Flughafen puffern, als weiterer Wert in `config.json`. Vor der Hauptanalyse entscheiden.
 4. Wind wird jetzt auch für Zeilen mit barometrischer Höhe interpoliert. Die kann einige 100 m von der geometrischen Höhe abweichen (in `WEATHER.md` dokumentiert). OK so?
+
+---
+
+## CC-8 + CC-9: Puffer-Höhengrenze, Höhe mit Knick, OLS-Interaktionstest, einheitliche Modelle A–D, Leakage-Demo
+
+**Datum · Branch · PR-Link:** 2026-11-17 · `matteo/Data-Analytics-Aviation` · – (Issues #18, #19; zwei Commits, noch nicht gepusht)
+
+**Was wurde geändert:**
+- **Schritt 0 – Puffer nur in Bodennähe (eigener Commit):** Eine Zeile wird nur noch gepuffert, wenn sie im 15-km-Radius **und** höchstens 3'000 m über dem Nachbarflughafen liegt (`max_height_above_airport_m` in `config.json`, Flughafenhöhe aus `elevation_ft` × 0.3048). Fehlt die Höhe eines Nachbarflughafens, bricht `prepare.py` ab. Neue Spalte `neighbour_height_m` (auch im PostgreSQL-Mirror). Notebook 01 zählt die Zeilen, die nur wegen der Höhe nicht gepuffert werden.
+- **Höhe mit Knick (`src/features.py`):** `alt_low_km` = Höhe bis 3'000 m in km, `alt_high_km` = Höhe über 3'000 m in km (`altitude_knot_m`). Jeder Koeffizient heisst damit direkt «km/h pro 1'000 m unter bzw. über 3'000 m». Ein zweiter Knick ist vorbereitet, aber aus (`altitude_knot2_m: null`). Dazu Zonen-Dummies (Referenz fern), Interaktionen Zone × Knick und die 7-Tage-Sperre an einer Stelle.
+- **CC-8 (`src/inference.py`, Notebook 03):** OLS `speed_kmh ~ (alt_low_km + alt_high_km) * C(zone, Treatment('far')) + C(airport) + C(flight_phase)` mit cluster-robusten Standardfehlern nach Flugzeug. Gemeinsame Wald-Tests (nah vs. fern; alle Zonen), Steigung pro Zone mit 95-%-KI, Varianten Flughafen (nur nah) und Flugzeugkategorie, Formprüfung der Residuen pro 1'000-m-Band. Alle Tabellen in km/h und m/s mit n Beobachtungen und n Flugzeugen, zwei Grafiken mit deutschen Labels. Der Abschnitt steht in Notebook 03 vor Spearman.
+- **CC-9 (`src/model_comparison.py`, Notebook 02):** eine einzige Definition der Modelle 0 (Mittelwert), A (Knick), B (+ Zone, Zone × Knick, Flughafen, Distanz, Flugphase), C (+ Kategorie), D (+ Wind), RF (B + Breiten-/Längengrad). Zielgrösse in km/h, alle drei Zonen, `latitude`/`longitude` nur noch im Random Forest. Dazu Splits nach Tag, nach Flugzeug und ein zufälliger Split nur als Leakage-Demo («Demonstration, nicht Ergebnis»), Koeffiziententabelle (pro Standardabweichung und in Originaleinheiten), Bootstrap-Intervall des RMSE nach Flugzeug und eine RMSE-Grafik Modell × Zone × Split. Notebook 02 ruft nur noch diese Funktionen auf und holt Kategorie und Wind per SQL-Join. Damit ist CC-1 mit erledigt.
+- `statsmodels` 0.14.6 und `patsy` 1.0.3 in `requirements.txt` und `requirements-lock.txt`.
+- Doku: `DECISIONS.md` (Vorschläge), `ROADMAP_5.5.md` (CC-1, CC-8, CC-9 erledigt), `README.md`, `METADATA.md`.
+
+**Warum:** Review 15.11., Punkte K3 (Forschungsfrage ohne p-Wert), H1 (Gerade in der Höhe ist falsch, `latitude`/`longitude` linear sinnlos), H3 (Leakage zeigen) und M5 (Fehlergrafik). Folie 9 kündigt den Knick bei 3'000 m und die Flugphase als Kontrolle an, Folie 11 die Hypothesen. Der Puffer hat bisher auch Überflüge in Reiseflughöhe entfernt.
+
+**Geänderte Dateien und Funktionen:**
+- `src/prepare.py`: `select_neighbour_airports` (Höhe Pflicht), `cleaning_settings` (`NEIGHBOUR_KEYS`), `clean_and_join` (Höhengrenze, `neighbour_height_m`).
+- `src/features.py` (neu): `knot_settings`, `altitude_terms`, `knot_features`, `interaction_columns`, `add_model_features`, `check_observed_dates`, `residual_profile`.
+- `src/inference.py` (neu): `formulas`, `fit_clustered`, `coefficient_table`, `wald_interaction`, `group_slopes`, `inference_frame`, `run_inference`, `slope_figure`, `residual_figure`.
+- `src/model_comparison.py` (neu geschrieben): `ModelSpec`, `model_specs`, `make_pipeline_for`, `model_frame`, `split_by_date`, `split_by_aircraft`, `split_random_demo`, `evaluate_models`, `coefficient_table`, `rmse_bootstrap`, `rmse_figure`. Entfernt: `make_comparison_models`, `compare_models`.
+- `src/postgres_mirror.py` (Spalte `neighbour_height_m`), `config.json` (`max_height_above_airport_m`, `altitude_knot_m`, `altitude_knot2_m`, `inference.min_aircraft_per_level`).
+- Notebooks 01 (Höhen-Zählung), 02 (neu aufgebaut), 03 (OLS-Abschnitt).
+- Tests: `tests/test_inference.py` (9), `tests/test_models.py` (8), `tests/synthetic.py` (Generator), 4 neue Tests in `tests/test_cleaning.py`; die 3 alten Modelltests in `test_coverage_and_models.py` ersetzt.
+- `requirements.txt`, `requirements-lock.txt`, `README.md`, `docs/DECISIONS.md`, `docs/METADATA.md`, `docs/ROADMAP_5.5.md`.
+
+**Wie getestet:**
+- 89/89 Unit-Tests grün, alle offline mit synthetischen Daten:
+  - bekannte Interaktion wird gefunden (p < 0.05, richtiges Vorzeichen, wahrer Wert im KI)
+  - ohne Interaktion ist p in 20 Läufen nicht systematisch klein
+  - Steigung pro Zone = Grundsteigung + Interaktion
+  - kleine Kategorien werden ausgelassen und gezählt
+  - Knick-Merkmale an den Rändern und bei negativer Höhe
+  - keine Leakage-Spalten, Breiten-/Längengrad nur im Random Forest
+  - Notebook 02 enthält keine eigenen Modelle
+  - zufälliger Split besser als Flugzeug-Split
+  - 7-Tage-Sperre greift
+  - Puffer: Überflug bleibt, Anflug fliegt raus, Grenze inklusive, fehlende Flughafenhöhe → Fehler, `own_zone`
+- Gegenprobe: Ohne die Höhenbedingung schlagen 3 Tests fehl.
+- Notebooks 02 und 03 einmal komplett auf einer synthetischen Datenbank mit 8 Tagen ausgeführt (nur im Scratchpad), Grafiken angeschaut. Auf den echten lokalen Daten stoppen beide an der 7-Tage-Sperre; Notebooks 01 und 04 laufen.
+- Python 3.10: nicht installiert. Geprüft wurden die f-Strings mit einem Tokenizer-Scan (findet den alten Fehler aus `83cbf25`, im neuen Code nichts) und die Voraussetzungen von `statsmodels` 0.14.6.
+
+**Auswirkung auf Daten/Ergebnisse:**
+- Puffer (lokal, 1 Tag): entfernt jetzt 3 statt 9 Zeilen, 6 Überflüge bleiben → 119 Beobachtungen.
+- Modelle und OLS laufen erst ab 7 Sammeltagen. Es gibt noch **keine Resultate**, nichts wurde interpretiert.
+- Modelle neu auf allen drei Zonen und in km/h; alte Kennzahlen (m/s, nur nah/fern) sind damit nicht direkt vergleichbar.
+
+**Offene Fragen an die Gruppe:**
+1. Knick bei 3'000 m, Flugphase als Kontrolle, Modellkette 0/A–D/RF auf allen drei Zonen, Höhengrenze 3'000 m für den Puffer bestätigen (`DECISIONS.md`, «Proposed 17.11.2026»).
+2. LSZR und EDJA in der Puffer-Liste (seit CC-10 offen).
+3. Zweiter Knick: Wer schaut nach dem 26.11. die Residuen-Grafik `ols_residuals_by_altitude.png` an und entscheidet, **bevor** wir die Ergebnisse interpretieren?
+4. Mindestens 20 Flugzeuge pro Kategorie bzw. Flughafen in den Varianten: passt die Schwelle?
+5. Kann jemand mit Python 3.10 oder 3.11 (Windows) einmal `python -m unittest discover -s tests` laufen lassen?

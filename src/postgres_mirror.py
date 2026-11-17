@@ -51,7 +51,8 @@ TABLES = {
                     "name": TEXT, "latitude_deg": DOUBLE, "longitude_deg": DOUBLE, "elevation_ft": DOUBLE,
                     "airport": TEXT, "zone": TEXT, "flight_phase": TEXT, "observed_at_utc": TIMESTAMPTZ,
                     "date_utc": DATE, "hour_local": SMALLINT, "weekday_local": SMALLINT, "speed_kmh": DOUBLE,
-                    "neighbour_ident": TEXT, "neighbour_distance_km": DOUBLE, "neighbour_buffer": SMALLINT},
+                    "neighbour_ident": TEXT, "neighbour_distance_km": DOUBLE, "neighbour_height_m": DOUBLE,
+                    "neighbour_buffer": SMALLINT},
         "primary_key": ["icao24", "time_position"],
         "foreign_keys": [(["airport_ident"], "airports", ["ident"])], "required": True},
     "aircraft_metadata": {

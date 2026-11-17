@@ -105,14 +105,8 @@ Use a fixed finite mapping of the reference's `icaoaircrafttype` description cod
 
 This deliberately small mapping leaves unusual airframes and unsupported descriptions unknown. It is not a verified operational category, flight phase, passenger-service label or size class. The current category table contains 2,181 jet, 187 turboprop, 115 piston, 185 helicopter and 1,447 unknown/other observations. Do not drop the unknown group to improve model metrics.
 
-## Optional A/B/C evaluation
+## Aircraft category in the models (since 17.11.2026, CC-9)
 
-Notebook 02 retains its baseline, original spatial regression, random forest and original diagnostics. Its appended optional cells compare three fixed linear models using `src/model_comparison.py`:
+The aircraft category is model **C** in the unified model chain of `src/model_comparison.py` (0 mean, A altitude knot, B + zone/airport/distance/flight phase, C + category, D + wind, RF comparison; see `DECISIONS.md`, «Model specification for the research question»). All models use the identical training and test rows of the same splits (later days; held-out aircraft). Missing metadata stays `Unbekannt` as its own level, never dropped; the one-hot encoding is learned on training rows only, and a category not seen in training is encoded like the reference category. `src/inference.py` additionally tests aircraft category × altitude with cluster-robust standard errors (categories with fewer than 20 aircraft are left out and listed). Nothing has run on main-collection data yet (7-date guard). Static metadata availability may differ by aircraft mix, and a held-out-aircraft split answers a different question from later-day performance; report both rather than claiming that category gains prove a causal effect.
 
-- A: geometric altitude only;
-- B: existing altitude, airport distance, latitude/longitude, near indicator and altitude×near interaction;
-- C: B plus broad aircraft category.
-
-All three reuse identical observation keys in the existing temporal train/test frames and, separately, the existing aircraft-held-out frames. No complete-case metadata subset or new split is introduced. C learns numeric imputation/scaling and one-hot encoding using training data only; unseen test categories are ignored safely, and missing metadata remains unknown/other. Every model reports the same test sample sizes, MAE/RMSE in m/s and R-squared by near/far/overall.
-
-An offline test verifies unseen-category handling; the seven-date guard also applies to this extension. The comparison has **not** run on the one-date pilot. Run it once sufficient multi-day data are available. Static metadata availability may differ by aircraft mix, and a held-out-aircraft split answers a different question from later-day performance; report both rather than claiming that category gains prove a causal effect.
+*History: until 17.11.2026 notebook 02 compared A (geometric altitude), B (distance, latitude/longitude, near indicator, altitude × near) and C (B + broad category) on near/far only.*
