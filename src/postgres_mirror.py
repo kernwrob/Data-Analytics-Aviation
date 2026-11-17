@@ -52,8 +52,12 @@ TABLES = {
     "aircraft_metadata": {
         "columns": {"icao24": TEXT, "aircraft_manufacturer": TEXT, "aircraft_model": TEXT,
                     "aircraft_typecode": TEXT, "aircraft_icao_description": TEXT, "aircraft_category": TEXT,
+                    "category_source": TEXT, "category_conflict": SMALLINT,
                     "metadata_source_record": TEXT, "metadata_conflict": TEXT},
         "primary_key": ["icao24"], "foreign_keys": [], "required": False},
+    "typecode_categories": {
+        "columns": {"typecode": TEXT, "category": TEXT, "example_model": TEXT, "source_note": TEXT},
+        "primary_key": ["typecode"], "foreign_keys": [], "required": False},
     "weather_levels": {
         "columns": {"time_utc": TIMESTAMPTZ, "grid_lat": DOUBLE, "grid_lon": DOUBLE, "level_hpa": SMALLINT,
                     "height_m": DOUBLE, "wind_speed_ms": DOUBLE, "wind_dir_deg": DOUBLE},
@@ -70,14 +74,26 @@ TABLES = {
     "integration_audit": {
         "columns": {"stage": TEXT, "rows": INTEGER, "unmatched": DOUBLE, "gained": DOUBLE, "lost": DOUBLE},
         "primary_key": [], "foreign_keys": [], "required": False},
+    "snapshot_bbox_audit": {
+        "columns": {"require_current_bbox": SMALLINT, "snapshots_total": INTEGER, "rows_total": INTEGER,
+                    "snapshots_kept": INTEGER, "rows_kept": INTEGER, "snapshots_old_bbox": INTEGER,
+                    "rows_old_bbox": INTEGER, "snapshots_missing_manifest": INTEGER,
+                    "rows_missing_manifest": INTEGER},
+        "primary_key": [], "foreign_keys": [], "required": False},
+    "category_audit": {
+        "columns": {"aircraft_category": TEXT, "category_source": TEXT, "observations": INTEGER,
+                    "aircraft": INTEGER, "metadata_matched_observations": INTEGER},
+        "primary_key": [], "foreign_keys": [], "required": False},
     "metadata_integration_audit": {
         "columns": {"source_available": SMALLINT, "raw_metadata_rows": INTEGER, "invalid_metadata_keys": INTEGER,
                     "duplicate_keys": INTEGER, "duplicate_rows_removed": INTEGER, "conflicting_keys": INTEGER,
+                    "typecode_conflicting_keys": INTEGER, "description_conflicting_keys": INTEGER,
                     "unique_metadata_keys": INTEGER, "observations_before": INTEGER,
                     "observations_after": INTEGER, "matched_observations": INTEGER,
                     "unmatched_observations": INTEGER, "observation_match_fraction": DOUBLE,
                     "distinct_aircraft": INTEGER, "matched_distinct_aircraft": INTEGER,
-                    "aircraft_match_fraction": DOUBLE, "gained": INTEGER, "lost": INTEGER, "pinned_source": TEXT},
+                    "aircraft_match_fraction": DOUBLE, "typecode_mapped_fraction": DOUBLE, "gained": INTEGER,
+                    "lost": INTEGER, "pinned_source": TEXT, "pinned_sha256": TEXT},
         "primary_key": [], "foreign_keys": [], "required": False},
     "weather_integration_audit": {
         "columns": {"source_available": SMALLINT, "weather_rows": INTEGER, "observations": INTEGER,

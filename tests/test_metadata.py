@@ -29,7 +29,7 @@ class MetadataTests(unittest.TestCase):
         enriched, audit = enrich_observations(self.observations(), metadata)
         self.assertEqual(len(enriched), 3)
         self.assertEqual(enriched.velocity.tolist(), [10., 20., 30.])
-        self.assertEqual(enriched.aircraft_category.tolist(), ["Jet landplane", "Jet landplane", UNKNOWN])
+        self.assertEqual(enriched.aircraft_category.tolist(), ["Kurzstrecke", "Kurzstrecke", UNKNOWN])
         self.assertEqual(audit["matched_observations"], 2)
         self.assertEqual(audit["matched_distinct_aircraft"], 1)
         self.assertAlmostEqual(audit["observation_match_fraction"], 2/3)
@@ -60,7 +60,8 @@ class MetadataTests(unittest.TestCase):
             root = Path(directory)
             for folder in ("data/raw/opensky", "data/raw/airports"):
                 (root / folder).mkdir(parents=True)
-            config = {"airport_idents": ["TEST"], "max_age_seconds": 60, "near_km": 30, "far_km": 60}
+            config = {"airport_idents": ["TEST"], "max_age_seconds": 60, "near_km": 30, "far_km": 60,
+                      "require_current_bbox": False}
             (root / "config.json").write_text(json.dumps(config))
             state = ["ABCDEF", "TEST", "Example", 100, 100, 8., 47., 1000., False, 50., 90., 0., None, 1000., None, False, 0]
             (root / "data/raw/opensky/fixture.json").write_text(json.dumps({"time": 100, "states": [state]}))

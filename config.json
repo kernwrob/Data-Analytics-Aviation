@@ -5,5 +5,9 @@
   "far_km": 60,
   "max_age_seconds": 60,
   "interval_seconds": 300,
+  "require_current_bbox": true,
+  "metadata_url": "https://opensky-network.org/datasets/metadata/aircraft-database-complete-2025-08.csv",
+  "metadata_file": "data/raw/aircraft_metadata/20261112T193156505671Z.csv",
+  "metadata_sha256": "41309cab2a092afc90304631532b3b9a7ce1e501ba003d9590c2ab84208daa3c",
   "weather": {"grid_step_deg": 0.5, "pressure_levels": [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150]}
 }

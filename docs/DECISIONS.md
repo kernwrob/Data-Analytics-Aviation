@@ -6,6 +6,7 @@ Confirmed: aircraft movements; three students; six or more weeks.
 |---|---|---|---|---|
 | Pending | Final research question | Airport/feature-set/generalization comparisons | All | Pending |
 | 2026-11-12 | Collection: old MacBook at Matteo, 24/7, every 5 min, 12.11. 19:30 → 26.11. 19:30 (Europe/Zurich), enlarged bounding box | Reliable repeated group-owned collection; full coverage around all three airports | Matteo (collector and daily monitoring) | See «Main collection» and «Bounding box enlarged» below, issue #47 |
+| 2026-11-12 | Aircraft category by typecode (7 fixed categories incl. Unbekannt), frozen before inspecting main-collection results; metadata pinned to the 2025-08 complete dump | Lecturer wants the category central; old mapping was too coarse | Matteo (proposal), to be acknowledged by all | See «Aircraft metadata version and aircraft category» below, issue #12 |
 | Pending | 30/60 km cutoffs and freshness rule | Freeze before inspecting final results | All | Pilot review |
 | Pending | Analysis date rule for exploratory correlation | Avoid selecting a date for a desired p-value | Student C | Pending |
 | Pending | SQLite plus optional PostgreSQL | Resolve conflicting minimum and bonus wording | All | Pending |
@@ -71,3 +72,14 @@ The user supplied the course evaluation text, preserved in `COURSE_EVALUATION.md
 **Analysis rule.** Snapshots taken with the old box (12.11. from 19:30 until the switch, roughly 1–2 hours) stay in `data/raw` but are excluded from the main analysis, so that every analysed snapshot covers the same area. The exclusion is based on the `params` in the manifest and is counted in the integration audit (issue: «Kartenausschnitt vergrössern»). The weather grid in `src/weather.py` follows the box in `config.json` automatically (more grid points). Pilot data from 1.10. and 22.10. used the old box and remain exploratory only.
 
 **Status.** Decided by Matteo on 12.11.2026 before any main-collection results were inspected; to be acknowledged by the group.
+
+**Implementation (12.11.2026, CC-7).** `prepare.py` reads `data/raw/manifest.jsonl` and keeps only snapshot files whose `params` bbox equals the `bbox` in `config.json` (`"require_current_bbox": true`). Files without a successful manifest entry are excluded as well, because their area is unknown. Counts are in `snapshot_bbox_audit` and in the integration audit (`raw_all_snapshots` → `current_bbox`). First run: 13 snapshots, 11 with the old box (777 state vectors) excluded, 2 kept (203 state vectors), 0 without manifest entry. Setting the flag to `false` loads every snapshot for exploratory work only.
+
+## Aircraft metadata version and aircraft category — 12 November 2026
+
+| Decision/action | Reason and evidence | Status |
+|---|---|---|
+| Pin the OpenSky dump `aircraft-database-complete-2025-08.csv` (SHA-256 in `config.json`) instead of `aircraftDatabase.csv` of 4 Nov 2024 | OpenSky's README calls the daily dump incomplete and the monthly «complete» dumps complete; 2025-08 is the newest complete one. Match rate on the first main data 88.5 % of observations (pilot with the old file: 67.3 %). Details in `METADATA.md` | Done by Matteo (CC-7, #12); file goes to Kevin and Robin via the shared folder (#14) |
+| **Aircraft category by typecode** with the fixed categories Kurzstrecke, Regionaljet, Langstrecke, Turboprop, Business-Jet, Sonstige, Unbekannt. Order: typecode table `data/reference/typecode_category.csv` → ICAO description (`L?T` → Turboprop; `L?P`, `H??`, `G??` → Sonstige; jets not guessed) → Unbekannt. Conflicting duplicates (typecode or description) → Unbekannt. Unbekannt is never merged with Sonstige | The description-only mapping put A320, B777 and Citation into one class («Jet landplane»); the lecturer wants the aircraft category to be central. The ADS-B emitter category is mostly 0 and stays a cross-check | **Frozen before inspecting main-collection results** (only typecode frequencies were looked at, no speeds). Status: to be acknowledged by the group |
+| Typecodes may be added to the table while data come in (from `outputs/tables/unmapped_typecodes.csv`); the categories themselves and their definitions do not change | Keeps coverage high as new aircraft appear, without tuning categories to results | Rule for the group |
+| Replace the label `unknown/other` by `Unbekannt` everywhere in code and notebooks | One consistent label for «no or insufficient metadata» | Done |

@@ -1,6 +1,7 @@
 """One research snapshot per invocation. Schedule externally; no background daemon.
 
-From project root: python src/collect.py airports | snapshot
+From project root: python src/collect.py airports | snapshot | metadata
+The metadata URL comes from "metadata_url" in config.json (default: METADATA_URL).
 Optional environment variables: OPENSKY_CLIENT_ID and OPENSKY_CLIENT_SECRET.
 Never reuse credentials from the reference notebook.
 """
@@ -18,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 STATE_URL = "https://opensky-network.org/api/states/all"
 TOKEN_URL = "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token"
 AIRPORT_URL = "https://davidmegginson.github.io/ourairports-data/airports.csv"
+# Default only; config.json "metadata_url" selects the pinned dump (see docs/METADATA.md).
 METADATA_URL = "https://opensky-network.org/datasets/metadata/aircraftDatabase.csv"
 
 
@@ -41,7 +43,8 @@ def save_response(response, folder, suffix, entry):
 
 def retrieve(source, config, collection_mode="manual"):
     """Log one outcome per attempt, without response bodies or credentials."""
-    url = {"airports": AIRPORT_URL, "snapshot": STATE_URL, "metadata": METADATA_URL}[source]
+    url = {"airports": AIRPORT_URL, "snapshot": STATE_URL,
+           "metadata": config.get("metadata_url") or METADATA_URL}[source]
     # extended=1 adds the ADS-B emitter category as an 18th state-vector field.
     params = {**config["bbox"], "extended": 1} if source == "snapshot" else None
     entry = {"source": source, "source_url": url, "params": params,
@@ -78,7 +81,8 @@ def retrieve(source, config, collection_mode="manual"):
                 raise ValueError("Expected airport CSV.")
             folder, suffix = "data/raw/airports", ".csv"
         elif source == "metadata":
-            if not response.content.startswith((b'"icao24"', b'icao24,')):
+            # The daily dump quotes with ", the monthly "complete" dumps with '.
+            if not response.content.startswith((b'"icao24"', b"'icao24'", b'icao24,')):
                 raise ValueError("Expected official aircraft metadata CSV.")
             folder, suffix = "data/raw/aircraft_metadata", ".csv"
         else:

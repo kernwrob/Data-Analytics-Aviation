@@ -152,7 +152,8 @@ class PrepareIntegrationTests(unittest.TestCase):
             for folder in ("opensky", "airports", "weather"):
                 (root / "data/raw" / folder).mkdir(parents=True)
             (root / "config.json").write_text(json.dumps(
-                {"airport_idents": ["TEST"], "max_age_seconds": 60, "near_km": 30, "far_km": 60}))
+                {"airport_idents": ["TEST"], "max_age_seconds": 60, "near_km": 30, "far_km": 60,
+                 "require_current_bbox": False}))
             pd.DataFrame({"ident": ["TEST"], "name": ["Test"], "latitude_deg": [47.], "longitude_deg": [8.],
                           "elevation_ft": [100.]}).to_csv(root / "data/raw/airports/a.csv", index=False)
             states = [["abcdef", "T1", "X", T0, T0, 8.0, 47.0, 1400., False, 100., 180., 0., None, 1500., None, False, 0, 3],

@@ -135,6 +135,26 @@ class CollectionAuditTests(unittest.TestCase):
             collect.retrieve("snapshot", self.config)
         self.assertIsNone(self.entries()[0]["category_present"])
 
+    def test_metadata_url_comes_from_config_and_single_quoted_dump_is_accepted(self):
+        url = "https://example.org/aircraft-database-complete-2025-08.csv"
+        response = Mock(status_code=200, headers={"Last-Modified": "Fri, 22 Aug 2025 15:06:02 GMT"}, url=url)
+        response.content = b"'icao24','timestamp','typecode'\n'abcdef','2025-01-01',A320\n"
+        with patch.object(collect.requests, "get", return_value=response) as request, \
+                contextlib.redirect_stdout(io.StringIO()):
+            collect.retrieve("metadata", {**self.config, "metadata_url": url})
+        self.assertEqual(request.call_args.args[0], url)
+        entry, = self.entries()
+        self.assertEqual((entry["source_url"], entry["outcome"]), (url, "success"))
+        self.assertTrue(entry["path"].startswith("data/raw/aircraft_metadata/"))
+
+    def test_metadata_without_config_url_uses_default(self):
+        response = Mock(status_code=200, headers={}, url=collect.METADATA_URL)
+        response.content = b"icao24,typecode\nabcdef,A320\n"
+        with patch.object(collect.requests, "get", return_value=response) as request, \
+                contextlib.redirect_stdout(io.StringIO()):
+            collect.retrieve("metadata", self.config)
+        self.assertEqual(request.call_args.args[0], collect.METADATA_URL)
+
 
 class StateFieldTests(unittest.TestCase):
     def setUp(self):
@@ -158,7 +178,8 @@ class StateFieldTests(unittest.TestCase):
         self.assertTrue(raw.category.isna().all())
 
     def test_raw_altitude_vertical_rate_and_category_reach_observations(self):
-        config = {"airport_idents": ["TEST"], "max_age_seconds": 60, "near_km": 30, "far_km": 60}
+        config = {"airport_idents": ["TEST"], "max_age_seconds": 60, "near_km": 30, "far_km": 60,
+                      "require_current_bbox": False}
         (self.root / "config.json").write_text(json.dumps(config))
         pd.DataFrame({"ident": ["TEST"], "name": ["Test airport"], "latitude_deg": [47.],
                       "longitude_deg": [8.], "elevation_ft": [100.]}).to_csv(self.root / "data/raw/airports/fixture.csv", index=False)

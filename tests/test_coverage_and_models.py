@@ -21,14 +21,14 @@ class CoverageTests(unittest.TestCase):
 class ComparisonTests(unittest.TestCase):
     def test_unseen_category_works_and_encoding_uses_training_only(self):
         train = pd.DataFrame({feature: [1., 2., 3., 4.] for feature in SPATIAL})
-        train["aircraft_category"] = ["Jet landplane"] * 4
+        train["aircraft_category"] = ["Kurzstrecke"] * 4
         test = train.iloc[[0]].copy()
         test["aircraft_category"] = "Previously unseen"
         features, model = make_comparison_models()["C: spatial and aircraft category"]
         model.fit(train[features], [10., 20., 30., 40.])
         self.assertTrue(np.isfinite(model.predict(test[features])).all())
         encoder = model[0].named_transformers_["category"][-1]
-        self.assertEqual(encoder.categories_[0].tolist(), ["Jet landplane"])
+        self.assertEqual(encoder.categories_[0].tolist(), ["Kurzstrecke"])
 
     def test_wind_model_is_optional_and_never_uses_target_derived_columns(self):
         from src.model_comparison import WIND, TARGET_DERIVED
@@ -39,7 +39,7 @@ class ComparisonTests(unittest.TestCase):
         self.assertFalse(TARGET_DERIVED.intersection(features))
         train = pd.DataFrame({feature: [1., 2., 3., 4.] for feature in SPATIAL})
         train["tailwind_ms"], train["crosswind_ms"] = [0., np.nan, 10., -5.], [1., 2., np.nan, 0.]
-        train["aircraft_category"] = "Jet landplane"
+        train["aircraft_category"] = "Kurzstrecke"
         model.fit(train[features], [10., 20., 30., 40.])
         self.assertTrue(np.isfinite(model.predict(train[features])).all())
 
